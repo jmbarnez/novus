@@ -127,7 +127,8 @@ function Space:enter(_, worldSeed)
     Systems.HudSystem,
     Systems.QuestSystem,
     Systems.RefinerySystem,
-    Systems.SoundSystem
+    Systems.SoundSystem,
+    Systems.EnemyAISystem
   )
 
   self.ecsWorld.__profiler = self.profiler.concord
@@ -168,6 +169,14 @@ function Space:enter(_, worldSeed)
   local avoidX, avoidY = shipBody:getPosition()
   factory.spawnAsteroids(self.ecsWorld, self.physicsWorld, 70, self.sectorWidth, self.sectorHeight, avoidX, avoidY, 650,
     self.worldRngs.asteroids)
+
+  -- Spawn a test enemy ship nearby
+  factory.createEnemyShip(
+    self.ecsWorld,
+    self.physicsWorld,
+    self.sectorWidth / 2 + 900,
+    self.sectorHeight / 2 + 200
+  )
 
   -- Initialize sound system and start background music
   Sound.load()

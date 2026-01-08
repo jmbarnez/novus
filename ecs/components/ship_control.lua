@@ -6,6 +6,7 @@ Concord.component("ship_control", function(c, opts)
   c.strafeForce = opts.strafeForce or 180
   c.rcsPower = opts.rcsPower or 400           -- Maneuvering thruster force
   c.stabilization = opts.stabilization or 1.0 -- How aggressively to stop rotation
+  c.brakeDamping = opts.brakeDamping or 3.0   -- Linear damping when braking
 
   -- Derived values (computed from physics in ship_control_system)
   c.torque = nil

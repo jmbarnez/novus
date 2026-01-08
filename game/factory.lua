@@ -6,6 +6,7 @@ local Player = require("game.factory.player")
 local Asteroids = require("game.factory.asteroids")
 local SpaceStation = require("game.factory.space_station")
 local RefineryStation = require("game.factory.refinery_station")
+local EnemyShip = require("game.factory.enemy_ship")
 local Rng = require("util.rng")
 
 factory.createWalls = Walls.createWalls
@@ -19,5 +20,6 @@ end
 factory.spawnAsteroids = function(ecsWorld, physicsWorld, count, w, h, avoidX, avoidY, avoidRadius, rng)
   return Asteroids.spawnAsteroids(ecsWorld, physicsWorld, count, w, h, avoidX, avoidY, avoidRadius, Rng.ensure(rng))
 end
+factory.createEnemyShip = EnemyShip.createEnemyShip
 
 return factory

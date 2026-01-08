@@ -12,9 +12,11 @@ function WeaponLogic.isValidTarget(e)
   return e
       and e.inWorld
       and e:inWorld()
-      and e:has("health")
-      and e.health.current > 0
       and e:has("physics_body")
+      and (
+        (e:has("health") and e.health.current > 0) or
+        (e:has("hull") and e.hull.current > 0)
+      )
 end
 
 function WeaponLogic.getClampedAimDir(shipBody, dx, dy, coneHalfAngle)
@@ -65,7 +67,13 @@ local function spawnProjectile(world, physicsWorld, ship, weapon, dirX, dirY)
   local fixture = love.physics.newFixture(body, shape, 0.1)
   fixture:setSensor(true)
   fixture:setCategory(4)
-  fixture:setMask(2, 4)
+
+  -- Mask collision with owner's category to avoid self-collision
+  local ownerCat = 2 -- Default to player category
+  if ship.physics_body and ship.physics_body.fixture then
+    ownerCat = ship.physics_body.fixture:getCategory()
+  end
+  fixture:setMask(4, ownerCat) -- Ignore projectiles (4) and owner category
 
   -- Set velocity
   local speed = weapon.projectileSpeed or 1200

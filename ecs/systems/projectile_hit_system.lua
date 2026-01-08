@@ -19,7 +19,7 @@ local function isValidTarget(projectile, target)
     return false
   end
 
-  if not target:has("health") and not target:has("space_station") then
+  if not target:has("health") and not target:has("hull") and not target:has("space_station") then
     return false
   end
 
@@ -80,10 +80,29 @@ local function tryHit(projectile, target, contact)
 
   local isStation = target:has("space_station")
   local hasHealth = target:has("health")
+  local hasHull = target:has("hull")
   local damage = isStation and 0 or (projectile.projectile.damage or 1)
 
-  if hasHealth and damage > 0 then
-    applyDamage(target, damage)
+  if damage > 0 then
+    if target:has("shield") then
+      local shield = target.shield
+      if shield.current > 0 then
+        local absorbed = math.min(shield.current, damage)
+        shield.current = shield.current - absorbed
+        damage = damage - absorbed
+        -- Visual effect could be added here for shield hit
+      end
+    end
+
+    if damage > 0 then
+      if hasHull then
+        target.hull.current = target.hull.current - damage
+        target:ensure("hit_flash")
+        target.hit_flash.t = target.hit_flash.duration
+      elseif hasHealth then
+        applyDamage(target, damage)
+      end
+    end
   end
 
   if target:has("asteroid") then

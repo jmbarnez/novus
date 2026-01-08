@@ -27,5 +27,7 @@ require("ecs.components.refinery_queue")
 require("ecs.components.credits")
 require("ecs.components.asteroid_composition")
 require("ecs.components.scanned")
+require("ecs.components.enemy")
+require("ecs.components.ai_brain")
 
 return true

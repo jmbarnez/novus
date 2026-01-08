@@ -83,7 +83,7 @@ function ShipControlSystem:fixedUpdate(dt)
       if speed2 < 4 then
         body:setLinearVelocity(0, 0)
       else
-        local brakeK = 3.0
+        local brakeK = e.ship_control.brakeDamping or 3.0
         local mass = body:getMass()
         body:applyForce(-vx * brakeK * mass, -vy * brakeK * mass)
       end

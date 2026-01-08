@@ -111,12 +111,12 @@ local function drawEnemyShip(e, shape)
   local hr, hg, hb, ha = Utils.applyFlashToColor(e, 0.28, 0.12, 0.14, 1)
   love.graphics.setColor(hr, hg, hb, ha)
   love.graphics.polygon("fill",
-    12, 0,
-    5, 5,
-    -8, 4,
-    -10, 0,
-    -8, -4,
-    5, -5
+    10, 0,
+    4, 4,
+    -6, 3,
+    -8, 0,
+    -6, -3,
+    4, -4
   )
 
   -- Outline
@@ -127,26 +127,26 @@ local function drawEnemyShip(e, shape)
   -- Detail lines
   love.graphics.setColor(0, 0, 0, 0.5)
   love.graphics.setLineWidth(1)
-  love.graphics.line(8, 0, -10, 0)
-  love.graphics.circle("line", 4, 0, 3.5)
+  love.graphics.line(6, 0, -8, 0)
+  love.graphics.circle("line", 3, 0, 2.5)
 
-  -- Engine struts
-  love.graphics.line(-6, 12, -16, 6)
-  love.graphics.line(-6, -12, -16, -6)
+  -- Engine struts (scaled to fit shape)
+  love.graphics.line(-5, 7, -10, 4)
+  love.graphics.line(-5, -7, -10, -4)
 
-  -- Engines
+  -- Engines (positioned within shape bounds)
   love.graphics.setColor(0.8, 0.2, 0.1, 0.85)
-  love.graphics.circle("fill", -14, 10, 2.5)
-  love.graphics.circle("fill", -14, -10, 2.5)
+  love.graphics.circle("fill", -9, 5, 2)
+  love.graphics.circle("fill", -9, -5, 2)
   love.graphics.setColor(0, 0, 0, 0.8)
-  love.graphics.circle("line", -14, 10, 2.5)
-  love.graphics.circle("line", -14, -10, 2.5)
+  love.graphics.circle("line", -9, 5, 2)
+  love.graphics.circle("line", -9, -5, 2)
 
   -- Cockpit
   love.graphics.setColor(0.6, 0.1, 0.1, 0.7)
-  love.graphics.circle("fill", 4, 0, 3)
+  love.graphics.circle("fill", 3, 0, 2.2)
   love.graphics.setColor(0, 0, 0, 0.7)
-  love.graphics.circle("line", 4, 0, 3)
+  love.graphics.circle("line", 3, 0, 2.2)
 end
 
 local function drawLaserBeam(e)
@@ -207,11 +207,13 @@ local function drawEngineThrust(e, isPlayerShip)
     love.graphics.polygon("fill", -8.5, 4.5, -8.5 - (sideLen * 0.5), 5, -8.5, 5.5)
     love.graphics.polygon("fill", -8.5, -4.5, -8.5 - (sideLen * 0.5), -5, -8.5, -5.5)
   else
-    -- Enemy thrust (red-orange)
+    -- Enemy thrust (red-orange, positioned at scaled-down engines)
     love.graphics.setColor(1.0, 0.4, 0.1, 0.9)
-    love.graphics.polygon("fill", -22, -5, -22 - len * 2, 0, -22, 5)
+    love.graphics.polygon("fill", -11, -4, -11 - len * 1.5, -5, -11, -6)
+    love.graphics.polygon("fill", -11, 4, -11 - len * 1.5, 5, -11, 6)
     love.graphics.setColor(1.0, 0.7, 0.3, 0.85)
-    love.graphics.polygon("fill", -20, -3, -20 - (len * 2 * 0.6), 0, -20, 3)
+    love.graphics.polygon("fill", -10, -4.5, -10 - len, -5, -10, -5.5)
+    love.graphics.polygon("fill", -10, 4.5, -10 - len, 5, -10, 5.5)
   end
 end
 
@@ -234,7 +236,7 @@ function ShipDraw.draw(ctx, e, body, shape, x, y, angle)
   love.graphics.setLineWidth(2)
   love.graphics.pop()
 
-  if e.auto_cannon then
+  if e.auto_cannon and isPlayerShip then
     local weapon = e.auto_cannon
     if weapon.coneVis and weapon.coneVis > 0 and weapon.aimX and weapon.aimY then
       WeaponDraw.drawAimIndicator(body, weapon)
