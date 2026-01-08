@@ -1,6 +1,7 @@
 local ControlsBottomLeft = {}
 
 local Theme = require("game.theme")
+local UIConfig = require("game.ui_config")
 local WindowFrame = require("game.hud.window_frame")
 local Rect = require("util.rect")
 
@@ -57,12 +58,10 @@ local function getLines()
     end
   end
 
-  -- Hardcoded / Extra
-  table.insert(lines, "Ctrl+Click: Select Target")
-  table.insert(lines, "M: Map")
-  table.insert(lines, "Wheel: Zoom")
-  table.insert(lines, "F11: Fullscreen")
-  table.insert(lines, "Esc: Pause")
+  local extras = (UIConfig.controls and UIConfig.controls.extraTips) or {}
+  for _, tip in ipairs(extras) do
+    table.insert(lines, tip)
+  end
 
   return lines
 end
