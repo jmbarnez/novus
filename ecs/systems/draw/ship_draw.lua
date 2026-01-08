@@ -217,6 +217,58 @@ local function drawEngineThrust(e, isPlayerShip)
   end
 end
 
+
+
+local function drawHealthBar(ctx, e, angle)
+  if ctx.capture then return end
+  if not e:has("hull") then return end
+
+  local hull = e.hull
+  if hull.current >= hull.max then return end -- Only show if damaged? Or always?
+  -- User said "like asteroids", asteroids show when < max.
+  -- But for enemies, seeing full health bar is also useful info?
+  -- Let's stick to "always visible" for enemies if requested, or "if damaged".
+  -- Asteroid logic: `current < max`.
+  -- For enemies, usually you want to see them to know they are enemies?
+  -- But they are already red.
+  -- Let's stick to "if damaged" to reduce clutter?
+  -- User prompt: "render health bars above their heads like we have for asteroids".
+  -- I will assume "if damaged" logic from asteroids first. Run with that.
+  -- Actually, enemies in games often show bars on hover or damaged.
+  -- I'll remove the `current < max` check to make them always visible for now,
+  -- checking if that feels too cluttered?
+  -- Let's stick to the asteroid logic exactly as requested: "like we have for asteroids".
+  -- Asteroid logic line 94: `e.health.current < e.health.max`
+
+  -- WAIT: If I shoot an enemy it should show up. If I don't, it might be hidden.
+  -- That's fine.
+
+  if hull.current >= hull.max then return end
+
+  local ratio = hull.current / hull.max
+  ratio = math.max(0, math.min(1, ratio))
+
+  -- Ship radius is roughly 12.
+  local r = 14
+  local barW = 24
+  local barH = 4
+  local barX = -barW / 2
+  local barY = -(r + 10)
+
+  love.graphics.push()
+  love.graphics.rotate(-angle) -- Keep horizontal
+
+  -- Background
+  love.graphics.setColor(0, 0, 0, 1)
+  love.graphics.rectangle("line", barX, barY, barW, barH)
+
+  -- Fill (Red)
+  love.graphics.setColor(1.0, 0.2, 0.2, 0.9)
+  love.graphics.rectangle("fill", barX + 1, barY + 1, (barW - 2) * ratio, barH - 2)
+
+  love.graphics.pop()
+end
+
 function ShipDraw.draw(ctx, e, body, shape, x, y, angle)
   love.graphics.push()
   love.graphics.translate(x, y)
@@ -228,6 +280,8 @@ function ShipDraw.draw(ctx, e, body, shape, x, y, angle)
     drawPlayerShip(ctx, e, shape)
   else
     drawEnemyShip(e, shape)
+    -- Draw bar for enemies
+    drawHealthBar(ctx, e, angle)
   end
 
   drawLaserBeam(e)
@@ -236,8 +290,9 @@ function ShipDraw.draw(ctx, e, body, shape, x, y, angle)
   love.graphics.setLineWidth(2)
   love.graphics.pop()
 
-  if e.auto_cannon and isPlayerShip then
-    local weapon = e.auto_cannon
+  -- Check for weapon visualization (generic 'weapon' or legacy 'auto_cannon')
+  local weapon = e.weapon or e.auto_cannon
+  if weapon and isPlayerShip then
     if weapon.coneVis and weapon.coneVis > 0 and weapon.aimX and weapon.aimY then
       WeaponDraw.drawAimIndicator(body, weapon)
     end

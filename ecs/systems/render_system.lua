@@ -7,11 +7,13 @@ local ProjectileDraw = require("ecs.systems.draw.projectile_draw")
 local PickupDraw = require("ecs.systems.draw.pickup_draw")
 local ShatterDraw = require("ecs.systems.draw.shatter_draw")
 local MapUiDraw = require("ecs.systems.draw.map_ui_draw")
+local ExplosionDraw = require("ecs.systems.draw.explosion_draw")
 local SpaceStationDraw = require("ecs.systems.draw.space_station_draw")
 local RefineryStationDraw = require("ecs.systems.draw.refinery_station_draw")
 
 local RenderSystem = Concord.system({
   renderables = { "physics_body", "renderable" },
+  explosions = { "explosion" }
 })
 
 function RenderSystem:init(world)
@@ -99,6 +101,13 @@ function RenderSystem:drawWorld()
       RefineryStationDraw.draw(ctx, e, body, shape, x, y, angle)
     end
   end
+
+  -- DRAW EXPLOSIONS (Additive)
+  love.graphics.setBlendMode("add")
+  for i = 1, self.explosions.size do
+    ExplosionDraw.draw(self.explosions[i])
+  end
+  love.graphics.setBlendMode("alpha")
 
   love.graphics.setColor(1, 1, 1, 1)
 end

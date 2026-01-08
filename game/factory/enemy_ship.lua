@@ -48,7 +48,7 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
         :give("ship_input")
         :give("enemy", opts.faction or "hostile")
         :give("ai_brain", {
-            engageRange = opts.engageRange or 300,
+            engageRange = opts.engageRange or 650,
             predictionTime = opts.predictionTime or 0.5,
             turnThresholdDeg = opts.turnThresholdDeg or 30,
         })

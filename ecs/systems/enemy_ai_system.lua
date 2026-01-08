@@ -70,10 +70,13 @@ function EnemyAISystem:fixedUpdate(dt)
         local angleDiff = normalizeAngle(desiredAngle - eAngle)
 
         -- Decide behavior state
-        if dist <= brain.engageRange then
-            brain.state = "engage"
+        -- "Only approach within engage range" logic:
+        -- If player is outside engage range, do nothing (IDLE).
+        -- If player is inside engage range, fight (ENGAGE).
+        if dist > brain.engageRange then
+            brain.state = "idle"
         else
-            brain.state = "pursue"
+            brain.state = "engage"
         end
 
         -- Default inputs
@@ -81,15 +84,15 @@ function EnemyAISystem:fixedUpdate(dt)
         local turn = 0
         local brake = 0
 
-        if brain.state == "pursue" then
-            -- Turn toward predicted position
-            if math.abs(angleDiff) > 0.05 then
-                turn = clamp(angleDiff * 2, -1, 1)
-            end
+        if brain.state == "idle" then
+            -- Do nothing, maybe brake slowly if passing by
+            e.ship_input.thrust = 0
+            e.ship_input.turn = 0
 
-            -- Only thrust if roughly facing target
-            if math.abs(angleDiff) < brain.turnThreshold then
-                thrust = 1
+            -- Optional: slow down if drifting
+            local vx, vy = body:getLinearVelocity()
+            if (vx * vx + vy * vy) > 10 then
+                brake = 0.5
             end
         elseif brain.state == "engage" then
             -- In range: face player but stop moving closer
@@ -104,8 +107,10 @@ function EnemyAISystem:fixedUpdate(dt)
                 brake = 1
             end
 
-            -- Fire weapon if facing target and have weapon
-            if e:has("auto_cannon") and physicsWorld then
+            -- Only FIRE if actually within reasonable weapon range (650)
+            -- The brain.engageRange might be higher (e.g. 1000) for "approach" logic,
+            -- but we only pull the trigger when close enough.
+            if dist <= 650 and e:has("auto_cannon") and physicsWorld then
                 local weapon = e.auto_cannon
                 weapon.timer = math.max(0, (weapon.timer or 0) - dt)
 

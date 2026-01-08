@@ -179,6 +179,7 @@ Theme.hud = {
     minimapBorder = { 0.45, 0.85, 1.00, 0.22 },
     minimapGrid = { 1, 1, 1, 0.08 },
     minimapPlayer = { 0.20, 0.65, 1.00, 1.0 },
+    minimapEnemy = { 1.00, 0.45, 0.35, 0.85 },
 
     good = { 0.20, 0.95, 0.35, 0.80 },
     warn = { 0.95, 0.85, 0.20, 0.85 },

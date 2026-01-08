@@ -163,6 +163,28 @@ function MinimapTopRight.draw(ctx)
     end)
   end
 
+  -- enemy ships
+  if world and world.query then
+    local enemyRadius = 3
+
+    world:query({ "enemy", "physics_body" }, function(e)
+      local body = e.physics_body and e.physics_body.body
+      if not body then return end
+
+      local ex, ey = body:getPosition()
+      local mx = mapX + (ex / sector.width) * mapW
+      local my = mapY + (ey / sector.height) * mapH
+
+      mx = MathUtil.clamp(mx, mapX + inset, mapX + mapW - inset)
+      my = MathUtil.clamp(my, mapY + inset, mapY + mapH - inset)
+
+      love.graphics.setColor(colors.minimapEnemy[1], colors.minimapEnemy[2], colors.minimapEnemy[3], colors.minimapEnemy[4])
+      love.graphics.circle("fill", mx, my, enemyRadius)
+      love.graphics.setColor(colors.minimapEnemy[1], colors.minimapEnemy[2], colors.minimapEnemy[3], colors.minimapEnemy[4] * 0.35)
+      love.graphics.circle("line", mx, my, enemyRadius + 1.5)
+    end)
+  end
+
   local mapUi = world and world.getResource and world:getResource("map_ui")
   if mapUi and mapUi.waypointX and mapUi.waypointY then
     local wx = mapX + (mapUi.waypointX / sector.width) * mapW

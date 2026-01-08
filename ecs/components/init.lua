@@ -31,5 +31,6 @@ require("ecs.components.enemy")
 require("ecs.components.ai_brain")
 require("ecs.components.weapon")
 require("ecs.components.missile")
+require("ecs.components.explosion")
 
 return true

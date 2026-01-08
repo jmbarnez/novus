@@ -1,8 +1,10 @@
 local Concord = require("lib.concord")
 local Physics = require("ecs.util.physics")
+local ExplosionFactory = require("game.factory.explosion_factory")
 
 local HealthSystem = Concord.system({
-  entities = { "health" },
+  healths = { "health" },
+  hulls = { "hull" }
 })
 
 function HealthSystem:init(world)
@@ -10,8 +12,9 @@ function HealthSystem:init(world)
 end
 
 function HealthSystem:update()
-  for i = self.entities.size, 1, -1 do
-    local e = self.entities[i]
+  -- Process Health (Asteroids, etc)
+  for i = self.healths.size, 1, -1 do
+    local e = self.healths[i]
 
     if e.health.current > e.health.max then
       e.health.current = e.health.max
@@ -24,7 +27,29 @@ function HealthSystem:update()
         self.world:emit("onAsteroidDestroyed", e, x, y, r)
       end
       Physics.destroyPhysics(e)
+      e:destroy()
+    end
+  end
 
+  -- Process Hulls (Ships)
+  for i = self.hulls.size, 1, -1 do
+    local e = self.hulls[i]
+
+    if e.hull.current > e.hull.max then
+      e.hull.current = e.hull.max
+    end
+
+    if e.hull.current <= 0 then
+      if e:has("ship") and e:has("physics_body") and e.physics_body.body then
+        -- EPIC EXPLOSION TRIGGER
+        local x, y = e.physics_body.body:getPosition()
+        local angle = e.physics_body.body:getAngle()
+        local shape = e.physics_body.shape
+
+        ExplosionFactory.createExplosion(self.world, x, y, angle, e, shape)
+      end
+
+      Physics.destroyPhysics(e)
       e:destroy()
     end
   end
