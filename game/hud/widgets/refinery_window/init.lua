@@ -5,7 +5,6 @@ local WindowFrame = require("game.hud.window_frame")
 local Refinery = require("game.systems.refinery")
 local RefineryUI = require("game.hud.refinery_state")
 local RefineryQueue = require("game.systems.refinery_queue")
-local RefineryBaySystem = require("ecs.systems.refinery_bay_system")
 local Items = require("game.items")
 local Inventory = require("game.inventory")
 
@@ -536,38 +535,11 @@ local function makeRefineryWindow()
             local maxSlots = station and station.refinery_queue and station.refinery_queue.maxSlots or 3
             local slotH = Helpers.SLOT_H
             local yOffset = 0
-
-            -- Check for bay slot click first (if bay has a processing job)
-            if station and station.refinery_bay then
-                local bayStatus = RefineryBaySystem.getBayStatus(station)
-                if bayStatus and bayStatus.processing then
-                    local sy = bounds.rightPanel.y
-                    local baySlotH = slotH - PAD * 2
-
-                    -- Bay collect button
-                    if bayStatus.complete then
-                        local collectBtnRect = {
-                            x = bounds.rightPanel.x + bounds.rightPanel.w - 65,
-                            y = sy + 18,
-                            w = 58,
-                            h = 24
-                        }
-
-                        if pointInRect(x, y, collectBtnRect) then
-                            local success, msg = RefineryBaySystem.collectBayJob(station, ship)
-                            showNotification(msg, success)
-                            return true
-                        end
-                    end
-                    yOffset = slotH
-                end
-            end
-
-            -- Regular queue slot collect buttons
-            for i = 1, maxSlots do
+            -- Queue slots
+            for i = 1, bounds.queueSlots do
+                local sy = bounds.rightPanel.y + yOffset
                 local job = jobs[i]
-                if job and RefineryQueue.isJobComplete(job) then
-                    local sy = bounds.rightPanel.y + yOffset + (i - 1) * slotH + PAD
+                if job then
                     local collectBtnRect = {
                         x = bounds.rightPanel.x + bounds.rightPanel.w - 60,
                         y = sy + 4,
