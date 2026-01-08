@@ -103,10 +103,12 @@ function StatusPanelTopLeft.draw(ctx)
   local levelText = tostring(level)
   local tw = font:getWidth(levelText)
   local th = font:getHeight()
+  local textX = math.floor(circleCX - tw / 2)
+  local textY = math.floor(circleCY - th / 2)
   love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
-  love.graphics.print(levelText, circleCX - tw / 2 + 1, circleCY - th / 2 + 1)
+  love.graphics.print(levelText, textX + 1, textY + 1)
   love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
-  love.graphics.print(levelText, circleCX - tw / 2, circleCY - th / 2)
+  love.graphics.print(levelText, textX, textY)
 
   -- right: Hull + Shield bars
   local rightX = x0 + panelPad * 2 + circleRadius * 2

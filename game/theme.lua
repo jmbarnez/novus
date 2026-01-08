@@ -130,9 +130,9 @@ Theme.hud = {
     rightGap = 8,
 
     circleRadius = 18,
-    circleThickness = 3,
+    circleThickness = 4,
     barW = 80,
-    barH = 6,
+    barH = 10,
     barGap = 4,
     panelPad = 6,
 
