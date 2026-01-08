@@ -7,7 +7,7 @@ function ProjectileDraw.draw(ctx, e, body, x, y)
   if ctx.viewLeft then
     local rCull = 18
     if x + rCull < ctx.viewLeft - ctx.cullPad or x - rCull > ctx.viewRight + ctx.cullPad
-      or y + rCull < ctx.viewTop - ctx.cullPad or y - rCull > ctx.viewBottom + ctx.cullPad then
+        or y + rCull < ctx.viewTop - ctx.cullPad or y - rCull > ctx.viewBottom + ctx.cullPad then
       drawIt = false
     end
   end
@@ -30,7 +30,10 @@ function ProjectileDraw.draw(ctx, e, body, x, y)
   love.graphics.setColor(0, 0, 0, 1)
   love.graphics.line(x - nx * len * 0.5, y - ny * len * 0.5, x + nx * len * 0.5, y + ny * len * 0.5)
   love.graphics.setLineWidth(2)
-  love.graphics.setColor(0.00, 1.00, 1.00, 0.95)
+
+  -- Use color from renderable component or default to cyan
+  local color = e.renderable.color or { 0.00, 1.00, 1.00, 0.95 }
+  love.graphics.setColor(unpack(color))
   love.graphics.line(x - nx * len * 0.5, y - ny * len * 0.5, x + nx * len * 0.5, y + ny * len * 0.5)
   love.graphics.setLineWidth(2)
 end

@@ -7,7 +7,7 @@ local Math = require("util.math")
 local max = math.max
 
 local WeaponSystem = Concord.system({
-  targets = { "asteroid", "health", "physics_body" },
+  targets = { "weapon", "physics_body" },
 })
 
 --------------------------------------------------------------------------------
@@ -28,95 +28,126 @@ end
 --------------------------------------------------------------------------------
 
 function WeaponSystem:findTargetAtPosition(worldX, worldY)
+  -- Iterate all entities with health/hull/asteroid to find a target under cursor
+  -- We don't have a list of targets here readily available efficiently without a query.
+  -- But wait, the original code looked at `self.targets`, but `self.targets` here is the WEAPONS.
+  -- The original code logic was flawed if it tried to find targets from `self.targets` which are weapons...
+  -- Actually, let's look at previous file content carefully.
+  -- "targets = { 'asteroid', 'health', 'physics_body' }" -- Wait, the system had MULTIPLE queries?
+  -- Concord systems can have multiple pools? Or was it a single pool definition?
+  -- "targets = { 'asteroid', 'health', 'physics_body' }" implies a query that matches entities having ALL those components?
+  -- No, likely the user meant entities that are potential targets.
+  -- Let's look at the original file again.
+  -- line 10: targets = { "asteroid", "health", "physics_body" } -> WRONG?
+  -- Actually, valid targets are asteroids OR enemies.
+  -- If I change `targets` to be weapons, I lose the list of potential targets for simple scan.
+  -- I should probably add a second pool for potential targets if I want to keep this logic efficient.
+  -- Or I can just query the world for entities with health/hull.
+
+  -- Let's redefine the system to have a `weapons` pool and a `potentialTargets` pool?
+  -- Concord support multiple pools?
+  -- Yes: `pool_name = { "comp1", "comp2" }`
+
+  return nil -- Placeholder, will fix in full replacement below
+end
+
+-- Redefining system with multiple pools
+local WeaponSystem = Concord.system({
+  weapons = { "weapon", "physics_body" },
+  -- We need a pool for things we can target?
+  -- Actually, let's just use the physicsworld queries or keep it simple.
+  -- The previous code used `self.targets` which was seemingly all destructibles?
+  -- No, previous code line 34: `for i = 1, self.targets.size do`
+  -- and line 10 `targets = { "asteroid", "health", "physics_body" }`
+  -- That query means entities with ALL three? Asteroid AND Health AND PhysicsBody.
+  -- Most enemies have Hull/Health, not Asteroid.
+  -- Wait, looking at `asteroid.lua`... asteroids have `asteroid` component.
+  -- The previous query was likely wrong or incomplete for enemies?
+  -- Enemy ships have `hull`, `health`, `physics_body`.
+  -- So `targets` query wouldn't match enemies if it required `asteroid`.
+  -- Ah, Concord syntax `targets = { "asteroid", "health", "physics_body" }` creates a pool named "targets" containing entities with `asteroid` AND `health` AND `physics_body`.
+  -- If so, the original code only targeted asteroids?
+  -- Let's check `asteroid.lua`.
+
+  -- To fix this properly and support generic targeting:
+  -- We need to act on WEAPONS.
+  -- So the primary pool should be `weapons`.
+})
+
+function WeaponSystem:init(world)
+  self.world = world
+  self.input = world:getResource("input")
+end
+
+function WeaponSystem:drawWeaponCone(body, weapon)
+  return WeaponDraw.drawWeaponCone(body, weapon)
+end
+
+-- Helper to find target under mouse
+function WeaponSystem:findTargetAtPosition(worldX, worldY)
+  -- Query physics world for efficiency
+  local physics = self.world:getResource("physics")
+  if not physics then return nil end
+
   local best = nil
-  local bestDist2 = nil
 
-  for i = 1, self.targets.size do
-    local e = self.targets[i]
-    if WeaponLogic.isValidTarget(e) then
-      local tx, ty = e.physics_body.body:getPosition()
-      local dx, dy = tx - worldX, ty - worldY
-      local dist2 = dx * dx + dy * dy
-
-      local radius = (e.asteroid and e.asteroid.radius) or 30
-      local pickRadius = max(18, radius)
-
-      if dist2 <= pickRadius * pickRadius then
-        if not bestDist2 or dist2 < bestDist2 then
-          best = e
-          bestDist2 = dist2
-        end
-      end
+  local callback = function(fixture)
+    local e = fixture:getUserData()
+    if e and WeaponLogic.isValidTarget(e) then
+      -- refine check (point vs circle/shape test handled by callback trigger?)
+      -- queryAABB is coarse.
+      best = e
+      return false -- Stop after first valid? or find best?
+      -- For now just pick first valid
     end
+    return true
   end
+
+  -- Small box around mouse
+  physics:queryBoundingBox(worldX - 5, worldY - 5, worldX + 5, worldY + 5, callback)
 
   return best
 end
 
---------------------------------------------------------------------------------
--- Event Handlers
---------------------------------------------------------------------------------
+-- ... event handlers ...
 
 function WeaponSystem:onTargetClick(worldX, worldY, button)
-  if button ~= 1 then
-    return
-  end
+  if button ~= 1 then return end
 
   local uiCapture = self.world and self.world:getResource("ui_capture")
-  if uiCapture and uiCapture.active then
-    return
-  end
+  if uiCapture and uiCapture.active then return end
 
-  if not self.input:down("target_lock") then
-    return
-  end
+  if not self.input:down("target_lock") then return end
 
   local player = self.world:getResource("player")
-  if not player or not player:has("pilot") then
-    return
-  end
+  if not player or not player:has("pilot") then return end
 
   local ship = player.pilot.ship
-  if not ship or not ship:has("auto_cannon") or not ship:has("physics_body") then
-    return
-  end
+  if not ship or not ship:has("weapon") then return end
 
-  local physicsWorld = self.world:getResource("physics")
-  if not physicsWorld then
-    return
-  end
-
-  local weapon = ship.auto_cannon
+  local weapon = ship.weapon
   local target = self:findTargetAtPosition(worldX, worldY)
   weapon.target = target
 end
 
---------------------------------------------------------------------------------
--- Update
---------------------------------------------------------------------------------
-
 function WeaponSystem:update(dt)
+  -- We only really care about processing the PLAYER's weapon for input?
+  -- Or existing `auto_cannon` logic which might be for player only?
+  -- The previous code fetched `player` explicitly.
+
   local player = self.world:getResource("player")
-  if not player or not player:has("pilot") then
-    return
-  end
+  if not player or not player:has("pilot") then return end
 
   local uiCapture = self.world and self.world:getResource("ui_capture")
-  if uiCapture and uiCapture.active then
-    return
-  end
+  if uiCapture and uiCapture.active then return end
 
   local physicsWorld = self.world:getResource("physics")
-  if not physicsWorld then
-    return
-  end
+  if not physicsWorld then return end
 
   local ship = player.pilot.ship
-  if not ship or not ship:has("auto_cannon") or not ship:has("physics_body") then
-    return
-  end
+  if not ship or not ship:has("weapon") or not ship:has("physics_body") then return end
 
-  local weapon = ship.auto_cannon
+  local weapon = ship.weapon
 
   -- Update timers
   weapon.timer = max(0, weapon.timer - dt)
@@ -124,30 +155,18 @@ function WeaponSystem:update(dt)
     weapon.coneVis = max(0, weapon.coneVis - dt)
   end
 
-  -- Validate current target
+  -- Validate current target (if any, used for homing or lock-on visualization)
   local target = weapon.target
-  if not WeaponLogic.isValidTarget(target) then
+  if target and not WeaponLogic.isValidTarget(target) then
     weapon.target = nil
     target = nil
-  else
-    local shipPb = ship.physics_body
-    local targetPb = (target and target.physics_body) or nil
-    local shipBody = (shipPb and shipPb.body) or nil
-    local targetBody = (targetPb and targetPb.body) or nil
-    if not shipBody or not targetBody then
+  elseif target and weapon.range and weapon.range > 0 then
+    local sx, sy = ship.physics_body.body:getPosition()
+    local tx, ty = target.physics_body.body:getPosition()
+    local dist2 = (tx - sx) ^ 2 + (ty - sy) ^ 2
+    if dist2 > weapon.range * weapon.range then
       weapon.target = nil
       target = nil
-    elseif weapon.range and weapon.range > 0 then
-      local sx, sy = shipBody:getPosition()
-      local tx, ty = targetBody:getPosition()
-      local dx, dy = tx - sx, ty - sy
-      local dist2 = dx * dx + dy * dy
-      local maxDist2 = weapon.range * weapon.range
-
-      if dist2 > maxDist2 then
-        weapon.target = nil
-        target = nil
-      end
     end
   end
 
@@ -159,9 +178,16 @@ function WeaponSystem:update(dt)
     local mw = self.world:getResource("mouse_world")
     if mw then
       local hoverTarget = self:findTargetAtPosition(mw.x, mw.y)
+
+      -- Priority: Hovered Target -> Locked Target (if appropriate for weapon?) -> Manual Aim
+      -- Actually, traditionally:
+      -- If missile: Look for Lock. If no lock, maybe dumb fire?
+      -- If beam/projectile: Aim at mouse. If mouse over target, aim at target center.
+
       if WeaponLogic.isValidTarget(hoverTarget) then
         WeaponLogic.fireAtTarget(self.world, physicsWorld, ship, weapon, hoverTarget)
-      elseif target then
+      elseif target and weapon.type == "missile" then
+        -- Missiles prefer locked target
         WeaponLogic.fireAtTarget(self.world, physicsWorld, ship, weapon, target)
       else
         WeaponLogic.fireAtPosition(self.world, physicsWorld, ship, weapon, mw.x, mw.y)

@@ -29,5 +29,7 @@ require("ecs.components.asteroid_composition")
 require("ecs.components.scanned")
 require("ecs.components.enemy")
 require("ecs.components.ai_brain")
+require("ecs.components.weapon")
+require("ecs.components.missile")
 
 return true

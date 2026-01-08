@@ -1,6 +1,9 @@
 local enemy_ship = {}
 
+local WeaponFactory = require("game.factory.weapon_factory")
+
 function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
+    -- ... (opts) ...
     opts = opts or {}
 
     local body = love.physics.newBody(physicsWorld, x, y, "dynamic")
@@ -49,20 +52,16 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
             predictionTime = opts.predictionTime or 0.5,
             turnThresholdDeg = opts.turnThresholdDeg or 30,
         })
-        :give("auto_cannon",
-            opts.fireCooldown or 1.5, -- cooldown (slower than player)
-            opts.fireRange or 400,    -- range
-            opts.fireDamage or 4,     -- damage
-            nil,                      -- projectileSpeed (default)
-            nil,                      -- projectileTtl (default)
-            0                         -- miningEfficiency (enemies don't mine)
-        )
+        -- Remove auto_cannon
         :give("engine_trail", {
             offsetX = -12,
             offsetY = 0,
             color = { 1.0, 0.3, 0.1, 0.95 },
         })
         :give("hull", opts.hull or 50)
+
+    -- Equip weapon (default to vulcan if not specified)
+    WeaponFactory.create(e, opts.weapon or "vulcan_cannon")
 
     fixture:setUserData(e)
 

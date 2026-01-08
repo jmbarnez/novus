@@ -2,7 +2,10 @@ local ship = {}
 
 local Inventory = require("game.inventory")
 
+local WeaponFactory = require("game.factory.weapon_factory")
+
 function ship.createShip(ecsWorld, physicsWorld, x, y)
+  -- ... (physics body creation) ...
   local body = love.physics.newBody(physicsWorld, x, y, "dynamic")
   body:setLinearDamping(0.15)
   body:setAngularDamping(6.0)
@@ -38,7 +41,7 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
         stabilization = 1.0,
       })
       :give("ship_input")
-      :give("auto_cannon")
+      -- Remove auto_cannon
       :give("engine_trail", {
         offsetX = -12,
         offsetY = 0,
@@ -50,6 +53,9 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
       :give("hull", 100)
       :give("shield", 60, 0)
       :give("energy", 100, 0)
+
+  -- Equip generic weapon
+  WeaponFactory.create(e, "vulcan_cannon")
 
   fixture:setUserData(e)
 

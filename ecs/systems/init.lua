@@ -22,5 +22,6 @@ Systems.QuestSystem = require("ecs.systems.quest_system")
 Systems.RefinerySystem = require("ecs.systems.refinery_system")
 Systems.SoundSystem = require("ecs.systems.sound_system")
 Systems.EnemyAISystem = require("ecs.systems.enemy_ai_system")
+Systems.MissileSystem = require("ecs.systems.missile_system")
 
 return Systems
