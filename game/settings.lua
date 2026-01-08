@@ -24,6 +24,8 @@ local DEFAULTS = {
         aim = { "mouse:2" },
         target_lock = { "key:lctrl", "key:rctrl" },
         interact = { "key:e" },
+        prev_weapon = { "key:n" },
+        next_weapon = { "key:m" },
     }
 }
 

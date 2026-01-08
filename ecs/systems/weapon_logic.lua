@@ -174,7 +174,7 @@ local function spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
     return 1
   end
 
-  physicsWorld:rayCast(rayCallback, sx, sy, tx, ty)
+  physicsWorld:rayCast(sx, sy, tx, ty, rayCallback)
 
   -- Apply damage if hit
   if hitEntity then

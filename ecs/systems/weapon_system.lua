@@ -1,10 +1,32 @@
 local Concord = require("lib.concord")
 local WeaponLogic = require("ecs.systems.weapon_logic")
 local WeaponDraw = require("ecs.systems.draw.weapon_draw")
+local WeaponFactory = require("game.factory.weapon_factory")
 local Math = require("util.math")
 
 -- Localize frequently used functions
 local max = math.max
+
+local WEAPON_LIST = {
+  "vulcan_cannon",
+  "heavy_gauss",
+  "plasma_splitter",
+  "void_ray",
+  "miners_bore",
+  "storm_coil",
+  "auto_cannon" -- Optional, maybe skip for player? User said "all the weapons". auto_cannon is basic enemy one.
+}
+-- Remove auto_cannon from cycle for player usually, but for testing "all" is fine.
+-- Let's stick to the main 6 I implemented plus maybe "auto_cannon" if user wants.
+-- I'll list the 6 main ones.
+local WEAPON_LIST = {
+  "vulcan_cannon",
+  "heavy_gauss",
+  "plasma_splitter",
+  "void_ray",
+  "miners_bore",
+  "storm_coil"
+}
 
 local WeaponSystem = Concord.system({
   targets = { "weapon", "physics_body" },
@@ -148,6 +170,30 @@ function WeaponSystem:update(dt)
   if not ship or not ship:has("weapon") or not ship:has("physics_body") then return end
 
   local weapon = ship.weapon
+
+  -- Debug: Swap weapons
+  if self.input:pressed("next_weapon") or self.input:pressed("prev_weapon") then
+    if not self.currentWeaponIndex then self.currentWeaponIndex = 1 end
+
+    local dir = self.input:pressed("next_weapon") and 1 or -1
+    self.currentWeaponIndex = self.currentWeaponIndex + dir
+
+    if self.currentWeaponIndex > #WEAPON_LIST then self.currentWeaponIndex = 1 end
+    if self.currentWeaponIndex < 1 then self.currentWeaponIndex = #WEAPON_LIST end
+
+    local newWeapon = WEAPON_LIST[self.currentWeaponIndex]
+    print("Switching to weapon: " .. newWeapon)
+
+    -- Cleanup old components that might not be overwritten
+    ship:remove("missile")
+
+    WeaponFactory.create(ship, newWeapon)
+
+    -- Refresh local reference since component was replaced?
+    -- Concord reuses the table usually? No, `give` might create new instance.
+    -- Safest to return early or re-fetch.
+    return
+  end
 
   -- Update timers
   weapon.timer = max(0, weapon.timer - dt)

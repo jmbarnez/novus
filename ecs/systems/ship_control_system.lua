@@ -142,6 +142,17 @@ function ShipControlSystem:fixedUpdate(dt)
         body:setAngularVelocity(-maxW)
       end
     end
+
+    -- Clamp linear velocity
+    local maxSpeed = e.ship_control.maxLinearSpeed
+    if maxSpeed and maxSpeed > 0 then
+      local vx, vy = body:getLinearVelocity()
+      local speed2 = vx * vx + vy * vy
+      if speed2 > maxSpeed * maxSpeed then
+        local speed = math.sqrt(speed2)
+        body:setLinearVelocity((vx / speed) * maxSpeed, (vy / speed) * maxSpeed)
+      end
+    end
   end
 end
 

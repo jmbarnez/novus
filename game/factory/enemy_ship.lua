@@ -7,7 +7,7 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
     opts = opts or {}
 
     local body = love.physics.newBody(physicsWorld, x, y, "dynamic")
-    body:setLinearDamping(0.15)
+    body:setLinearDamping(0.5)
     body:setAngularDamping(6.0)
     body:setBullet(true)
 
@@ -39,11 +39,12 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
         :give("renderable", "ship", color)
         :give("ship")
         :give("ship_control", {
-            thrustForce = opts.thrustForce or 60, -- Reduced from 90
-            strafeForce = opts.strafeForce or 40,
+            thrustForce = opts.thrustForce or 35,
+            strafeForce = opts.strafeForce or 20,
             rcsPower = opts.rcsPower or 160,
             stabilization = 1.0,
-            brakeDamping = 0.5, -- Much lower braking for drift (was default 3.0)
+            brakeDamping = 0.5,
+            maxLinearSpeed = 250,
         })
         :give("ship_input")
         :give("enemy", opts.faction or "hostile")

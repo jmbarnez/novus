@@ -4,9 +4,10 @@ Concord.component("ship_control", function(c, opts)
   opts = opts or {}
   c.thrustForce = opts.thrustForce or 220
   c.strafeForce = opts.strafeForce or 180
-  c.rcsPower = opts.rcsPower or 400           -- Maneuvering thruster force
-  c.stabilization = opts.stabilization or 1.0 -- How aggressively to stop rotation
-  c.brakeDamping = opts.brakeDamping or 3.0   -- Linear damping when braking
+  c.rcsPower = opts.rcsPower or 400             -- Maneuvering thruster force
+  c.stabilization = opts.stabilization or 1.0   -- How aggressively to stop rotation
+  c.brakeDamping = opts.brakeDamping or 3.0     -- Linear damping when braking
+  c.maxLinearSpeed = opts.maxLinearSpeed or 400 -- Maximum linear speed clamp
 
   -- Derived values (computed from physics in ship_control_system)
   c.torque = nil
