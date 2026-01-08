@@ -6,11 +6,11 @@ local TargetingSystem = Concord.system({
 
 local function isValidTarget(e)
   return e
-    and e.inWorld
-    and e:inWorld()
-    and e:has("health")
-    and e.health.current > 0
-    and e:has("physics_body")
+      and e.inWorld
+      and e:inWorld()
+      and e:has("health")
+      and e.health.current > 0
+      and e:has("physics_body")
 end
 
 function TargetingSystem:init(world)
@@ -82,6 +82,39 @@ function TargetingSystem:update()
     if not isValidTarget(self.targeting.selected) then
       self.targeting.selected = nil
     end
+  end
+
+  -- Track scan progress for selected asteroid
+  local SCAN_DURATION = 0.8 -- seconds to complete scan
+  local selected = self.targeting.selected
+
+  if selected and selected:has("asteroid") then
+    -- Check if already scanned
+    if selected:has("scanned") then
+      self.targeting.scanProgress = 1.0
+    else
+      -- Accumulate scan time while target is locked
+      if self.targeting.scanTarget == selected then
+        self.targeting.scanTime = (self.targeting.scanTime or 0) + love.timer.getDelta()
+      else
+        -- New target, reset scan timer
+        self.targeting.scanTarget = selected
+        self.targeting.scanTime = 0
+      end
+
+      local progress = math.min(1.0, self.targeting.scanTime / SCAN_DURATION)
+      self.targeting.scanProgress = progress
+
+      -- Complete scan when progress reaches 100%
+      if progress >= 1.0 and not selected:has("scanned") then
+        selected:give("scanned")
+      end
+    end
+  else
+    -- No valid target, reset scan state
+    self.targeting.scanTarget = nil
+    self.targeting.scanTime = 0
+    self.targeting.scanProgress = 0
   end
 end
 

@@ -79,6 +79,10 @@ function TargetPanelTopCenter.draw(ctx)
   local dy = ty - shipY
   local dist = math.sqrt(dx * dx + dy * dy)
 
+  -- Check if target is locked (scanned)
+  local scanProgress = targeting.scanProgress or 0
+  local isLocked = target:has("scanned") or scanProgress >= 1.0
+
   local r = ps.radius or 0
   local shadowOffset = ps.shadowOffset or 0
   local shadowAlpha = ps.shadowAlpha or 0
@@ -95,44 +99,80 @@ function TargetPanelTopCenter.draw(ctx)
   love.graphics.rectangle("line", x0, y0, w, h, r, r)
   love.graphics.setLineWidth(1)
 
-  local title = "TARGET"
-  love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
-  love.graphics.print(title, x0 + pad + 1, y0 + pad + titleYOffset + 1)
-  love.graphics.setColor(colors.accent[1], colors.accent[2], colors.accent[3], colors.accent[4])
-  love.graphics.print(title, x0 + pad, y0 + pad + titleYOffset)
-
-  local info = string.format("%dm", math.floor(dist + 0.5))
   local font = love.graphics.getFont()
-  local infoW = font:getWidth(info)
-  love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
-  love.graphics.print(info, x0 + w - pad - infoW + 1, y0 + pad + titleYOffset + 1)
-  love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
-  love.graphics.print(info, x0 + w - pad - infoW, y0 + pad + titleYOffset)
 
-  local barX = x0 + pad
-  local barY = y0 + pad + font:getHeight() + barYOffset
-  local barW = w - pad * 2
+  if not isLocked then
+    -- Show "LOCKING..." state with progress bar
+    local title = "LOCKING..."
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(title, x0 + pad + 1, y0 + pad + titleYOffset + 1)
+    love.graphics.setColor(1.0, 0.7, 0.2, 1.0) -- Orange/amber for locking state
+    love.graphics.print(title, x0 + pad, y0 + pad + titleYOffset)
 
-  local frac = safeFrac(target.health.current, target.health.max)
-  local healthColor = tp.healthFill or { 1.00, 0.90, 0.20, 0.90 }
-  drawBar(barX, barY, barW, barH, frac, healthColor, colors)
+    -- Distance on right
+    local info = string.format("%dm", math.floor(dist + 0.5))
+    local infoW = font:getWidth(info)
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(info, x0 + w - pad - infoW + 1, y0 + pad + titleYOffset + 1)
+    love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
+    love.graphics.print(info, x0 + w - pad - infoW, y0 + pad + titleYOffset)
 
-  local hpText = string.format("%d / %d", math.floor(target.health.current or 0), math.floor(target.health.max or 0))
-  local hpX = barX
-  local hpY = barY + barH + hpTextGap
-  love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
-  love.graphics.print(hpText, hpX + 1, hpY + 1)
-  love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
-  love.graphics.print(hpText, hpX, hpY)
+    -- Lock progress bar
+    local barX = x0 + pad
+    local barY = y0 + pad + font:getHeight() + barYOffset
+    local barW = w - pad * 2
 
-  local pct = math.floor(frac * 100 + 0.5)
-  local pctText = string.format("%d%%", pct)
-  local pctW = font:getWidth(pctText)
-  local pctX = x0 + w - pad - pctW
-  love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
-  love.graphics.print(pctText, pctX + 1, hpY + 1)
-  love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
-  love.graphics.print(pctText, pctX, hpY)
+    local lockColor = { 1.0, 0.6, 0.1, 0.9 } -- Orange for lock progress
+    drawBar(barX, barY, barW, barH, scanProgress, lockColor, colors)
+
+    -- Progress percentage text
+    local pct = math.floor(scanProgress * 100 + 0.5)
+    local progressText = string.format("Lock: %d%%", pct)
+    local progressY = barY + barH + hpTextGap
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(progressText, barX + 1, progressY + 1)
+    love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
+    love.graphics.print(progressText, barX, progressY)
+  else
+    -- Show full locked target info
+    local title = "TARGET LOCKED"
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(title, x0 + pad + 1, y0 + pad + titleYOffset + 1)
+    love.graphics.setColor(colors.accent[1], colors.accent[2], colors.accent[3], colors.accent[4])
+    love.graphics.print(title, x0 + pad, y0 + pad + titleYOffset)
+
+    local info = string.format("%dm", math.floor(dist + 0.5))
+    local infoW = font:getWidth(info)
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(info, x0 + w - pad - infoW + 1, y0 + pad + titleYOffset + 1)
+    love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
+    love.graphics.print(info, x0 + w - pad - infoW, y0 + pad + titleYOffset)
+
+    local barX = x0 + pad
+    local barY = y0 + pad + font:getHeight() + barYOffset
+    local barW = w - pad * 2
+
+    local frac = safeFrac(target.health.current, target.health.max)
+    local healthColor = tp.healthFill or { 1.00, 0.90, 0.20, 0.90 }
+    drawBar(barX, barY, barW, barH, frac, healthColor, colors)
+
+    local hpText = string.format("%d / %d", math.floor(target.health.current or 0), math.floor(target.health.max or 0))
+    local hpX = barX
+    local hpY = barY + barH + hpTextGap
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(hpText, hpX + 1, hpY + 1)
+    love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
+    love.graphics.print(hpText, hpX, hpY)
+
+    local pct = math.floor(frac * 100 + 0.5)
+    local pctText = string.format("%d%%", pct)
+    local pctW = font:getWidth(pctText)
+    local pctX = x0 + w - pad - pctW
+    love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
+    love.graphics.print(pctText, pctX + 1, hpY + 1)
+    love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
+    love.graphics.print(pctText, pctX, hpY)
+  end
 
   love.graphics.setColor(1, 1, 1, 1)
 

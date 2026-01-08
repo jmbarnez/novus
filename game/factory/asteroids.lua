@@ -57,6 +57,46 @@ local function pickOreVariant(rng)
   return ORE_VARIANTS[rng:random(1, #ORE_VARIANTS)]
 end
 
+-- Generate weighted resource composition for an asteroid
+-- Stone is common, iron is uncommon, mithril is rare
+local function generateComposition(rng)
+  local stonePct = MathUtil.randRangeRng(rng, 60, 85)
+  local remaining = 100 - stonePct
+
+  -- Iron gets most of remaining, mithril is rare
+  local mithrilMax = math.min(15, remaining)
+  local mithrilPct = 0
+  if rng:random() < 0.35 then -- 35% chance to have any mithril
+    mithrilPct = math.floor(MathUtil.randRangeRng(rng, 1, mithrilMax))
+  end
+
+  local ironPct = remaining - mithrilPct
+
+  local composition = {}
+  composition[#composition + 1] = { id = "stone", pct = stonePct }
+  if ironPct > 0 then
+    composition[#composition + 1] = { id = "iron", pct = ironPct }
+  end
+  if mithrilPct > 0 then
+    composition[#composition + 1] = { id = "mithril", pct = mithrilPct }
+  end
+
+  return composition
+end
+
+-- Determine dominant ore for ore vein rendering (backwards compat)
+local function getDominantOre(composition)
+  local dominantOre = nil
+  local dominantPct = 0
+  for _, entry in ipairs(composition) do
+    if entry.id ~= "stone" and entry.pct > dominantPct then
+      dominantOre = entry.id
+      dominantPct = entry.pct
+    end
+  end
+  return dominantOre
+end
+
 local function cross(o, a, b)
   return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
 end
@@ -231,11 +271,31 @@ function asteroids.createAsteroid(ecsWorld, physicsWorld, x, y, radius, rng, ore
 
   local seed = rng:random(1, 1000000)
 
+  -- Generate resource composition
+  local composition = generateComposition(rng)
+
+  -- Use dominant ore for ore vein visuals if not explicitly provided
+  if not finalOreId then
+    finalOreId = getDominantOre(composition)
+    -- Update color based on dominant ore
+    if finalOreId then
+      for i = 1, #ORE_VARIANTS do
+        local v = ORE_VARIANTS[i]
+        if v and v.id == finalOreId then
+          local mixed = mixColor(baseColor, v.tint, 0.68)
+          color = mulColor(mixed, { 1.05, 1.05, 1.05, 1.0 })
+          break
+        end
+      end
+    end
+  end
+
   local e = ecsWorld:newEntity()
       :give("physics_body", body, shape, fixture)
       :give("renderable", "asteroid", color)
       :give("asteroid", radius, craters, nil, nil, nil, nil, seed, finalOreId)
       :give("health", maxHealth)
+      :give("asteroid_composition", composition)
 
   fixture:setUserData(e)
 

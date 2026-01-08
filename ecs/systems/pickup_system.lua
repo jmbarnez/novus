@@ -48,12 +48,48 @@ function PickupSystem:onAsteroidDestroyed(a, b, c, d)
     minedVolume = 1
   end
 
-  local dropId = "stone"
-  if asteroid and asteroid.asteroid and asteroid.asteroid.oreId then
-    local id = asteroid.asteroid.oreId
-    if Items.get(id) then
-      dropId = id
+  -- Build drop table from composition or fallback to oreId
+  local dropTable = {}
+  if asteroid and asteroid:has("asteroid_composition") then
+    local composition = asteroid.asteroid_composition.resources
+    if composition and #composition > 0 then
+      for _, entry in ipairs(composition) do
+        if Items.get(entry.id) then
+          dropTable[#dropTable + 1] = { id = entry.id, weight = entry.pct }
+        end
+      end
     end
+  end
+
+  -- Fallback to old oreId system if no composition
+  if #dropTable == 0 then
+    local dropId = "stone"
+    if asteroid and asteroid.asteroid and asteroid.asteroid.oreId then
+      local id = asteroid.asteroid.oreId
+      if Items.get(id) then
+        dropId = id
+      end
+    end
+    dropTable[#dropTable + 1] = { id = dropId, weight = 100 }
+  end
+
+  -- Calculate total weight for normalization
+  local totalWeight = 0
+  for _, entry in ipairs(dropTable) do
+    totalWeight = totalWeight + entry.weight
+  end
+
+  -- Weighted random selection function
+  local function rollDropId()
+    local roll = MathUtil.randRange(0, totalWeight)
+    local cumulative = 0
+    for _, entry in ipairs(dropTable) do
+      cumulative = cumulative + entry.weight
+      if roll <= cumulative then
+        return entry.id
+      end
+    end
+    return dropTable[1].id -- Fallback
   end
 
   local pieces = math.max(3, math.min(12, math.floor(r / 6)))
@@ -73,7 +109,7 @@ function PickupSystem:onAsteroidDestroyed(a, b, c, d)
 
     local jx = MathUtil.randRange(-10, 10)
     local jy = MathUtil.randRange(-10, 10)
-    spawnPickup(world, physicsWorld, dropId, x + jx, y + jy, v)
+    spawnPickup(world, physicsWorld, rollDropId(), x + jx, y + jy, v)
   end
 
   while remaining > 0 do
@@ -81,7 +117,7 @@ function PickupSystem:onAsteroidDestroyed(a, b, c, d)
     remaining = remaining - v
     local jx = MathUtil.randRange(-10, 10)
     local jy = MathUtil.randRange(-10, 10)
-    spawnPickup(world, physicsWorld, dropId, x + jx, y + jy, v)
+    spawnPickup(world, physicsWorld, rollDropId(), x + jx, y + jy, v)
   end
 end
 

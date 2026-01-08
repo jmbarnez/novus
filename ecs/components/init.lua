@@ -25,5 +25,7 @@ require("ecs.components.floating_text")
 require("ecs.components.space_station")
 require("ecs.components.refinery_queue")
 require("ecs.components.credits")
+require("ecs.components.asteroid_composition")
+require("ecs.components.scanned")
 
 return true
