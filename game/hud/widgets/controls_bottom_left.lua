@@ -104,12 +104,14 @@ local function makeControlsBottomLeft()
     local w = maxW + pad * 2
     local h = headerH + footerH + pad * 2 + contentH
 
-    -- Always force bottom left position (reset normalized coords to prevent override)
-    local screenH = ctx and ctx.screenH or 0
-    self.frame.x = margin
-    self.frame.y = screenH - margin - h
-    self.frame.normX = nil
-    self.frame.normY = nil
+    -- Default to bottom-left on first display, but allow dragging to persist
+    if self.frame.normX == nil then
+      local screenW = ctx and ctx.screenW or love.graphics.getWidth()
+      local screenH = ctx and ctx.screenH or love.graphics.getHeight()
+      -- Set normalized position for bottom-left corner
+      self.frame.normX = margin / screenW
+      self.frame.normY = (screenH - margin - h) / screenH
+    end
 
     self.bounds = self.frame:compute(ctx, w, h, {
       margin = margin,
