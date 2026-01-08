@@ -159,20 +159,6 @@ function Space:enter(_, worldSeed)
     self.sectorHeight / 2 - 800
   )
 
-  -- Spawn a small test asteroid right outside the refinery bay for testing
-  -- Bay is on the right side of the station, opening at X + 250 + 50 = X + 300
-  local refineryX = self.sectorWidth / 2 + 1500
-  local refineryY = self.sectorHeight / 2 - 800
-  factory.createAsteroid(
-    self.ecsWorld,
-    self.physicsWorld,
-    refineryX + 350, -- Just outside the bay opening
-    refineryY,       -- Centered with bay
-    20,              -- Small radius (fits in 50-wide opening)
-    nil,             -- Use default RNG
-    "iron"           -- Has iron ore
-  )
-
   -- Spawn the player ship offset from the station
   self.ship = factory.createShip(self.ecsWorld, self.physicsWorld, self.sectorWidth / 2 + 650, self.sectorHeight / 2)
   self.player = factory.createPlayer(self.ecsWorld, self.ship)
