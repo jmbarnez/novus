@@ -1,7 +1,11 @@
 local Gamestate = require("lib.hump.gamestate")
 local Space = require("states.space")
 local Seed = require("util.seed")
-local Settings = require("game.settings") -- Load settings
+local Settings = require("game.settings")
+
+-- Post-processing resources (initialized in love.load)
+local gammaShader
+local mainCanvas
 
 function love.load()
   love.physics.setMeter(64)
@@ -18,8 +22,20 @@ function love.load()
   local vsync = Settings.get("vsync")
   love.window.setVSync(vsync and 1 or 0)
 
+  -- Load gamma shader for post-processing
+  gammaShader = love.graphics.newShader("game/shaders/gamma.glsl")
+
+  -- Create canvas for post-processing (resized on window resize)
+  local w, h = love.graphics.getDimensions()
+  mainCanvas = love.graphics.newCanvas(w, h)
+
   Gamestate.registerEvents()
   Gamestate.switch(Space, worldSeed)
+end
+
+-- Recreate canvas on resize
+function love.resize(w, h)
+  mainCanvas = love.graphics.newCanvas(w, h)
 end
 
 -- Custom main loop for FPS limiting
@@ -56,10 +72,22 @@ function love.run()
     if love.update then love.update(dt) end
 
     if love.graphics and love.graphics.isActive() then
+      -- Render everything to canvas first
+      love.graphics.setCanvas(mainCanvas)
       love.graphics.origin()
       love.graphics.clear(love.graphics.getBackgroundColor())
 
       if love.draw then love.draw() end
+
+      love.graphics.setCanvas()
+
+      -- Apply gamma correction shader when drawing canvas to screen
+      local gamma = Settings.get("gamma") or 1.0
+      gammaShader:send("gamma", gamma)
+
+      love.graphics.setShader(gammaShader)
+      love.graphics.draw(mainCanvas, 0, 0)
+      love.graphics.setShader()
 
       love.graphics.present()
     end

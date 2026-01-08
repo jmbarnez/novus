@@ -6,6 +6,10 @@ local FILENAME = "settings.lua"
 local DEFAULTS = {
     maxFps = 60,
     vsync = true,
+    windowMode = "windowed", -- "windowed", "fullscreen", "borderless"
+    resolution = { w = 1280, h = 720 },
+    gamma = 1.0,             -- 0.5 to 2.0
+    uiScale = 1.0,           -- 0.75 to 1.5
     audio = {
         masterVolume = 1.0,
         sfxVolume = 0.8,
@@ -141,6 +145,17 @@ function Settings.setControl(action, keys)
     if not Settings.data.controls then Settings.data.controls = {} end
     Settings.data.controls[action] = keys
     Settings.save()
+end
+
+-- Reset all settings to defaults
+function Settings.resetToDefaults()
+    -- Delete saved settings file
+    if love.filesystem.getInfo(FILENAME) then
+        love.filesystem.remove(FILENAME)
+    end
+    -- Reload defaults
+    Settings.data = nil
+    Settings.load()
 end
 
 Settings.load()

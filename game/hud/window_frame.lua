@@ -6,9 +6,16 @@ local pointInRect = Rect.pointInRect
 local WindowFrame = {}
 WindowFrame.__index = WindowFrame
 
+-- Track last known screen dimensions for proportional repositioning
+WindowFrame._lastScreenW = nil
+WindowFrame._lastScreenH = nil
+
 function WindowFrame.new()
   local self = setmetatable({}, WindowFrame)
-  self.x = nil
+  -- Store normalized position (0-1 range) for proportional scaling
+  self.normX = nil -- nil = center
+  self.normY = nil -- nil = center
+  self.x = nil     -- Cached absolute position
   self.y = nil
   self.dragging = false
   self.dragOffsetX = 0
@@ -33,20 +40,30 @@ function WindowFrame:compute(ctx, w, h, opts)
   local headerH = opts.headerH or 0
   local footerH = opts.footerH or 0
 
-  local x0 = self.x
-  local y0 = self.y
-  if x0 == nil or y0 == nil then
+  local x0, y0
+
+  -- Check if screen size changed (resolution change)
+  local screenChanged = (WindowFrame._lastScreenW ~= nil and WindowFrame._lastScreenH ~= nil) and
+      (WindowFrame._lastScreenW ~= screenW or WindowFrame._lastScreenH ~= screenH)
+
+  if self.normX ~= nil and self.normY ~= nil then
+    -- Convert normalized position to absolute
+    x0 = self.normX * screenW
+    y0 = self.normY * screenH
+  else
+    -- Default to center
     x0 = math.floor((screenW - w) / 2)
     y0 = math.floor((screenH - h) / 2)
   end
 
+  -- Clamp to screen bounds
   if screenW > 0 then
     local minX = margin
     local maxX = screenW - margin - w
     if x0 < minX then
       x0 = minX
     elseif x0 > maxX then
-      x0 = maxX
+      x0 = math.max(minX, maxX)
     end
   end
 
@@ -56,12 +73,21 @@ function WindowFrame:compute(ctx, w, h, opts)
     if y0 < minY then
       y0 = minY
     elseif y0 > maxY then
-      y0 = maxY
+      y0 = math.max(minY, maxY)
     end
   end
 
+  -- Update cached absolute and normalized positions
   self.x = x0
   self.y = y0
+  if screenW > 0 and screenH > 0 then
+    self.normX = x0 / screenW
+    self.normY = y0 / screenH
+  end
+
+  -- Update last known screen size
+  WindowFrame._lastScreenW = screenW
+  WindowFrame._lastScreenH = screenH
 
   local bounds = {
     x = x0,
@@ -204,9 +230,29 @@ function WindowFrame:mousemoved(ctx, x, y, dx, dy)
     return false
   end
 
-  self.x = x - (self.dragOffsetX or 0)
-  self.y = y - (self.dragOffsetY or 0)
+  local newX = x - (self.dragOffsetX or 0)
+  local newY = y - (self.dragOffsetY or 0)
+
+  self.x = newX
+  self.y = newY
+
+  -- Update normalized position based on current screen size
+  local screenW = ctx and ctx.screenW or love.graphics.getWidth()
+  local screenH = ctx and ctx.screenH or love.graphics.getHeight()
+  if screenW > 0 and screenH > 0 then
+    self.normX = newX / screenW
+    self.normY = newY / screenH
+  end
+
   return true
+end
+
+-- Reset position to center (useful for specific cases)
+function WindowFrame:resetPosition()
+  self.normX = nil
+  self.normY = nil
+  self.x = nil
+  self.y = nil
 end
 
 return WindowFrame

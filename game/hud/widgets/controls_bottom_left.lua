@@ -104,10 +104,12 @@ local function makeControlsBottomLeft()
     local w = maxW + pad * 2
     local h = headerH + footerH + pad * 2 + contentH
 
-    -- Always force bottom left position
-    self.frame.x = margin
+    -- Always force bottom left position (reset normalized coords to prevent override)
     local screenH = ctx and ctx.screenH or 0
+    self.frame.x = margin
     self.frame.y = screenH - margin - h
+    self.frame.normX = nil
+    self.frame.normY = nil
 
     self.bounds = self.frame:compute(ctx, w, h, {
       margin = margin,
