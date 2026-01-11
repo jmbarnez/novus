@@ -11,6 +11,7 @@ local Camera = require("game.camera")
 local Profiler = require("util.profiler")
 local Seed = require("util.seed")
 local Pause = require("states.pause")
+local Death = require("states.death")
 local MathUtil = require("util.math")
 local Sound = require("game.sound")
 
@@ -106,6 +107,7 @@ function Space:enter(_, worldSeed)
   self.ecsWorld:setResource("world_rngs", self.worldRngs)
   self.ecsWorld:setResource("station_ui", require("game.hud.station_state").new())
   self.ecsWorld:setResource("refinery_ui", require("game.hud.refinery_state").new())
+  self.ecsWorld:setResource("player_died", false)
 
   self.ecsWorld:addSystems(
     Systems.PhysicsSnapshotSystem,
@@ -162,8 +164,12 @@ function Space:enter(_, worldSeed)
     self.sectorHeight / 2 - 800
   )
 
+  -- Store spawn position for respawning
+  self.spawnX = self.sectorWidth / 2 + 650
+  self.spawnY = self.sectorHeight / 2
+
   -- Spawn the player ship offset from the station
-  self.ship = factory.createShip(self.ecsWorld, self.physicsWorld, self.sectorWidth / 2 + 650, self.sectorHeight / 2)
+  self.ship = factory.createShip(self.ecsWorld, self.physicsWorld, self.spawnX, self.spawnY)
   self.player = factory.createPlayer(self.ecsWorld, self.ship)
   self.ecsWorld:setResource("player", self.player)
 
@@ -172,16 +178,46 @@ function Space:enter(_, worldSeed)
   factory.spawnAsteroids(self.ecsWorld, self.physicsWorld, 70, self.sectorWidth, self.sectorHeight, avoidX, avoidY, 650,
     self.worldRngs.asteroids)
 
-  -- Spawn 8 random enemy ships
+  -- Spawn 8 random enemy ships, avoiding the station safe zone
+  local stationX = self.sectorWidth / 2
+  local stationY = self.sectorHeight / 2
+  local enemySafeRadius = 800 -- Enemies can't spawn within this radius of the station
+
   for i = 1, 8 do
-    local ex = love.math.random(0, self.sectorWidth)
-    local ey = love.math.random(0, self.sectorHeight)
+    local ex, ey
+    repeat
+      ex = love.math.random(0, self.sectorWidth)
+      ey = love.math.random(0, self.sectorHeight)
+      local dx = ex - stationX
+      local dy = ey - stationY
+      local distSq = dx * dx + dy * dy
+    until distSq > enemySafeRadius * enemySafeRadius
+
     factory.createEnemyShip(self.ecsWorld, self.physicsWorld, ex, ey)
   end
 
   -- Initialize sound system and start background music
   Sound.load()
   Sound.playMusic("space_ambient1")
+end
+
+function Space:respawn()
+  -- Create new ship at spawn position
+  self.ship = factory.createShip(self.ecsWorld, self.physicsWorld, self.spawnX, self.spawnY)
+
+  -- Update player's pilot component to reference new ship
+  if self.player and self.player:has("pilot") then
+    self.player.pilot.ship = self.ship
+  end
+
+  -- Update ECS resource references
+  self.ecsWorld:setResource("player", self.player)
+
+  -- Reset death flag
+  self.ecsWorld:setResource("player_died", false)
+
+  -- Hide mouse cursor for gameplay
+  love.mouse.setVisible(false)
 end
 
 function Space:resume()
@@ -291,6 +327,13 @@ function Space:update(dt)
 
     if self.ecsWorld and self.fixedDt > 0 then
       self.ecsWorld:setResource("render_alpha", self.accumulator / self.fixedDt)
+    end
+
+    -- Check for player death and show death screen
+    local playerDied = self.ecsWorld and self.ecsWorld:getResource("player_died")
+    if playerDied then
+      self.ecsWorld:setResource("player_died", false)
+      Gamestate.push(Death)
     end
   end
 end

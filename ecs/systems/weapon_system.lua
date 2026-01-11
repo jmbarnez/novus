@@ -11,6 +11,7 @@ local WEAPON_LIST = {
   "vulcan_cannon",
   "plasma_splitter", -- scatter-shot
   "mining_laser",    -- continuous mining beam
+  "pulse_laser",     -- slow fire, high speed pulse
 }
 
 local WeaponSystem = Concord.system({

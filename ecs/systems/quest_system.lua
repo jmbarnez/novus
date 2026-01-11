@@ -51,4 +51,13 @@ function QuestSystem:onItemCollected(ship, itemId, amount)
     self:grantRewards(stationUi.quests)
 end
 
+-- Event: onShipDestroyed(ship, x, y)
+function QuestSystem:onShipDestroyed(ship, x, y)
+    local stationUi = self.world:getResource("station_ui")
+    if not stationUi or not stationUi.quests then return end
+
+    Quests.updateProgress(stationUi.quests, "destroy_enemies", "ship", 1)
+    self:grantRewards(stationUi.quests)
+end
+
 return QuestSystem

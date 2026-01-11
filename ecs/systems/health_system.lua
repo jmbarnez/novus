@@ -40,6 +40,21 @@ function HealthSystem:update()
     end
 
     if e.hull.current <= 0 then
+      -- Check if this is the player's ship before destruction
+      local player = self.world:getResource("player")
+      local isPlayerShip = player and player.pilot and player.pilot.ship == e
+
+      if isPlayerShip then
+        -- Set resource flag for gamestate to detect and show death screen
+        self.world:setResource("player_died", true)
+      else
+        -- Emit event for enemy ship destruction (rewards, quests)
+        if e:has("physics_body") and e.physics_body.body then
+          local x, y = e.physics_body.body:getPosition()
+          self.world:emit("onShipDestroyed", e, x, y)
+        end
+      end
+
       if e:has("ship") and e:has("physics_body") and e.physics_body.body then
         -- EPIC EXPLOSION TRIGGER
         local x, y = e.physics_body.body:getPosition()

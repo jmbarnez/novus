@@ -61,8 +61,8 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
         })
         :give("hull", opts.hull or 50)
 
-    -- Equip weapon (default to vulcan if not specified)
-    WeaponFactory.create(e, opts.weapon or "vulcan_cannon")
+    -- Equip weapon (default to pulse laser if not specified)
+    WeaponFactory.create(e, opts.weapon or "pulse_laser")
 
     fixture:setUserData(e)
 

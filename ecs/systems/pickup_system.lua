@@ -230,4 +230,39 @@ function PickupSystem:onContact(a, b, contact)
   end
 end
 
+-- Enemy ship destruction rewards
+function PickupSystem:onShipDestroyed(ship, x, y)
+  local world = self.world
+  if not world then return end
+
+  local player = world:getResource("player")
+  if not player then return end
+
+  -- Grant credits
+  local creditReward = 50
+  if player:has("credits") then
+    player.credits.balance = player.credits.balance + creditReward
+    FloatingText.spawn(world, x, y - 20, "+" .. creditReward .. " Credits", {
+      kind = "credits",
+      color = { 1.0, 0.85, 0.2, 1.0 },
+      riseSpeed = 45,
+      duration = 1.0,
+      scale = 1.0,
+    })
+  end
+
+  -- Grant XP
+  local xpReward = 25
+  if player:has("player_progress") then
+    player.player_progress.xp = player.player_progress.xp + xpReward
+    FloatingText.spawn(world, x, y - 35, "+" .. xpReward .. " XP", {
+      kind = "xp",
+      color = { 0.6, 0.9, 1.0, 1.0 },
+      riseSpeed = 40,
+      duration = 1.0,
+      scale = 0.9,
+    })
+  end
+end
+
 return PickupSystem

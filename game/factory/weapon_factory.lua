@@ -6,6 +6,7 @@ local ALLOWED = {
     vulcan_cannon = "vulcan_cannon",
     plasma_splitter = "plasma_splitter", -- scatter-shot
     mining_laser = "mining_laser",       -- continuous beam, good mining
+    pulse_laser = "pulse_laser",         -- slow fire, high damage, short beam
 }
 local FALLBACK = "vulcan_cannon"
 

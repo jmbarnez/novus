@@ -69,7 +69,7 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
   shieldFixture:setUserData(e)
 
   -- Equip generic weapon
-  WeaponFactory.create(e, "vulcan_cannon")
+  WeaponFactory.create(e, "pulse_laser")
 
   fixture:setUserData(e)
 
