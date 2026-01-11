@@ -166,6 +166,11 @@ function WeaponSystem:update(dt)
     if self.currentWeaponIndex > #WEAPON_LIST then self.currentWeaponIndex = 1 end
     if self.currentWeaponIndex < 1 then self.currentWeaponIndex = #WEAPON_LIST end
 
+    -- Stop any active beam before swapping out to avoid orphaned visuals/entities.
+    if weapon.type == "beam" then
+      WeaponLogic.stopBeam(weapon)
+    end
+
     local newWeapon = WEAPON_LIST[self.currentWeaponIndex]
     print("Switching to weapon: " .. newWeapon)
 

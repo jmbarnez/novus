@@ -27,6 +27,9 @@ function EnemyAISystem:_getPlayerState()
     end
 
     local body = ship.physics_body.body
+    if not body then
+        return nil
+    end
     local x, y = body:getPosition()
     local vx, vy = body:getLinearVelocity()
 
@@ -60,6 +63,19 @@ function EnemyAISystem:fixedUpdate(dt)
         -- Predict where the player will be
         local predX = playerState.x + playerState.vx * brain.predictionTime
         local predY = playerState.y + playerState.vy * brain.predictionTime
+        local jitterRadius = brain.aimJitterRadius or 0
+        if jitterRadius > 0 then
+            brain._aimJitterTimer = (brain._aimJitterTimer or 0) - dt
+            if not brain._aimJitterDX or not brain._aimJitterDY or brain._aimJitterTimer <= 0 then
+                local angle = love.math.random() * math.pi * 2
+                local radius = math.sqrt(love.math.random()) * jitterRadius -- sqrt for uniform disc
+                brain._aimJitterDX = math.cos(angle) * radius
+                brain._aimJitterDY = math.sin(angle) * radius
+                brain._aimJitterTimer = brain.aimJitterHold or 0.35
+            end
+            predX = predX + brain._aimJitterDX
+            predY = predY + brain._aimJitterDY
+        end
 
         local dx = predX - ex
         local dy = predY - ey

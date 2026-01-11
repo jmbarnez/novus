@@ -1,6 +1,5 @@
 local Utils = require("ecs.systems.draw.render_utils")
 local WeaponDraw = require("ecs.systems.draw.weapon_draw")
-local ShieldRippleDraw = require("ecs.systems.draw.shield_ripple_draw")
 
 local ShipDraw = {}
 
@@ -276,9 +275,6 @@ local function drawHealthBar(ctx, e, angle)
 end
 
 function ShipDraw.draw(ctx, e, body, shape, x, y, angle)
-  -- Draw shield ripple effects first (behind the ship)
-  ShieldRippleDraw.draw(e, x, y)
-
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(angle)

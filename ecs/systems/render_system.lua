@@ -10,9 +10,11 @@ local MapUiDraw = require("ecs.systems.draw.map_ui_draw")
 local ExplosionDraw = require("ecs.systems.draw.explosion_draw")
 local SpaceStationDraw = require("ecs.systems.draw.space_station_draw")
 local RefineryStationDraw = require("ecs.systems.draw.refinery_station_draw")
+local ShieldRippleDraw = require("ecs.systems.draw.shield_ripple_draw")
 
 local RenderSystem = Concord.system({
   renderables = { "physics_body", "renderable" },
+  shielded = { "physics_body", "shield" },
   explosions = { "explosion" },
   beams = { "laser_beam" }
 })
@@ -125,6 +127,21 @@ function RenderSystem:drawWorld()
     elseif e.renderable.kind == "refinery_station" then
       RefineryStationDraw.draw(ctx, e, body, shape, x, y, angle)
     end
+  end
+
+  -- DRAW SHIELD EFFECTS (for any entity with a shield)
+  for i = 1, self.shielded.size do
+    local e = self.shielded[i]
+    local pb = e.physics_body
+    local body = pb.body
+
+    local x, y = body:getPosition()
+    if pb.prevX ~= nil and pb.prevY ~= nil and alpha ~= 1 then
+      x = Utils.lerp(pb.prevX, x, alpha)
+      y = Utils.lerp(pb.prevY, y, alpha)
+    end
+
+    ShieldRippleDraw.draw(e, x, y)
   end
 
   -- DRAW BEAMS (Additive + shader)
