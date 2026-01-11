@@ -30,6 +30,14 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
 
   fixture:setCategory(2)
 
+  -- Create shield physics fixture (larger circle, bouncy)
+  local shieldRadius = 28
+  local shieldShape = love.physics.newCircleShape(shieldRadius)
+  local shieldFixture = love.physics.newFixture(body, shieldShape, 0.1)
+  shieldFixture:setRestitution(0.8) -- Bouncy!
+  shieldFixture:setFriction(0.1)    -- Low friction
+  shieldFixture:setCategory(2)      -- Same category as ship
+
   local e = ecsWorld:newEntity()
       :give("physics_body", body, shape, fixture)
       :give("renderable", "ship", { 0.75, 0.85, 1.0, 1.0 })
@@ -54,6 +62,11 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
       :give("hull", 100)
       :give("shield", 60, 0)
       :give("energy", 100, 0)
+
+  -- Store shield fixture reference
+  e.shield.fixture = shieldFixture
+  e.shield.radius = shieldRadius
+  shieldFixture:setUserData(e)
 
   -- Equip generic weapon
   WeaponFactory.create(e, "vulcan_cannon")

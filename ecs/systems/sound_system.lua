@@ -19,10 +19,11 @@ end
 --------------------------------------------------------------------------------
 
 function SoundSystem:onWeaponFired(ship, weapon)
-    Sound.play("laser_fire", {
-        pitchVariation = 0.1,
-        volumeVariation = 0.05,
-    })
+    -- Temporarily muted by request
+    -- Sound.play("laser_fire", {
+    --     pitchVariation = 0.1,
+    --     volumeVariation = 0.05,
+    -- })
 end
 
 --------------------------------------------------------------------------------

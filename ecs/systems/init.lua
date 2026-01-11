@@ -24,5 +24,6 @@ Systems.SoundSystem = require("ecs.systems.sound_system")
 Systems.EnemyAISystem = require("ecs.systems.enemy_ai_system")
 Systems.MissileSystem = require("ecs.systems.missile_system")
 Systems.ExplosionSystem = require("ecs.systems.explosion_system")
+Systems.ShieldRippleSystem = require("ecs.systems.shield_ripple_system")
 
 return Systems

@@ -13,11 +13,36 @@ local RefineryStationDraw = require("ecs.systems.draw.refinery_station_draw")
 
 local RenderSystem = Concord.system({
   renderables = { "physics_body", "renderable" },
-  explosions = { "explosion" }
+  explosions = { "explosion" },
+  beams = { "laser_beam" }
 })
+
+local beamShader
+local beamMesh
+local beamTexture
 
 function RenderSystem:init(world)
   self.world = world
+
+  if not beamShader then
+    beamShader = love.graphics.newShader("game/shaders/beam.glsl")
+  end
+
+  if not beamMesh then
+    -- Unit quad with UVs (0..1) so shader can use normalized coords.
+    beamMesh = love.graphics.newMesh({
+      { 0, 0, 0, 0 },
+      { 1, 0, 1, 0 },
+      { 0, 1, 0, 1 },
+      { 1, 1, 1, 1 },
+    }, "strip", "dynamic")
+  end
+
+  if not beamTexture then
+    local data = love.image.newImageData(1, 1)
+    data:setPixel(0, 0, 1, 1, 1, 1)
+    beamTexture = love.graphics.newImage(data)
+  end
 end
 
 function RenderSystem:drawWorld()
@@ -101,6 +126,55 @@ function RenderSystem:drawWorld()
       RefineryStationDraw.draw(ctx, e, body, shape, x, y, angle)
     end
   end
+
+  -- DRAW BEAMS (Additive + shader)
+  love.graphics.setBlendMode("add")
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.setShader(beamShader)
+  for i = 1, self.beams.size do
+    local e = self.beams[i]
+    local beam = e.laser_beam
+
+    local dx = beam.endX - beam.startX
+    local dy = beam.endY - beam.startY
+    local len = math.sqrt(dx * dx + dy * dy)
+    local angle
+    if math.atan2 then
+      angle = math.atan2(dy, dx)
+    else
+      -- Lua 5.1 fallback: atan(y/x) with quadrant handling
+      if dx == 0 then
+        angle = (dy >= 0) and math.pi * 0.5 or -math.pi * 0.5
+      else
+        angle = math.atan(dy / dx)
+        if dx < 0 then
+          angle = angle + math.pi
+        end
+      end
+    end
+    local width = (beam.width or 4) * 2.3
+    local r, g, b, a = unpack(beam.color or { 0, 1, 1, 1 })
+
+    beamShader:send("time", love.timer.getTime())
+    beamShader:send("beamColor", { r, g, b })
+    beamShader:send("beamAlpha", a or 1)
+
+    -- Update quad geometry to match current beam size (strip order: TL, TR, BL, BR).
+    local halfW = width * 0.5
+    beamMesh:setVertex(1, 0, -halfW, 0, 0)
+    beamMesh:setVertex(2, len, -halfW, 1, 0)
+    beamMesh:setVertex(3, 0, halfW, 0, 1)
+    beamMesh:setVertex(4, len, halfW, 1, 1)
+    beamMesh:setTexture(beamTexture)
+
+    love.graphics.push()
+    love.graphics.translate(beam.startX, beam.startY)
+    love.graphics.rotate(angle)
+    love.graphics.draw(beamMesh)
+    love.graphics.pop()
+  end
+  love.graphics.setShader()
+  love.graphics.setBlendMode("alpha")
 
   -- DRAW EXPLOSIONS (Additive)
   love.graphics.setBlendMode("add")

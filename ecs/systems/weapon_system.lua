@@ -9,23 +9,8 @@ local max = math.max
 
 local WEAPON_LIST = {
   "vulcan_cannon",
-  "heavy_gauss",
-  "plasma_splitter",
-  "void_ray",
-  "miners_bore",
-  "storm_coil",
-  "auto_cannon" -- Optional, maybe skip for player? User said "all the weapons". auto_cannon is basic enemy one.
-}
--- Remove auto_cannon from cycle for player usually, but for testing "all" is fine.
--- Let's stick to the main 6 I implemented plus maybe "auto_cannon" if user wants.
--- I'll list the 6 main ones.
-local WEAPON_LIST = {
-  "vulcan_cannon",
-  "heavy_gauss",
-  "plasma_splitter",
-  "void_ray",
-  "miners_bore",
-  "storm_coil"
+  "plasma_splitter", -- scatter-shot
+  "mining_laser",    -- continuous mining beam
 }
 
 local WeaponSystem = Concord.system({
@@ -216,7 +201,7 @@ function WeaponSystem:update(dt)
     end
   end
 
-  if self.input:down("fire") and weapon.timer <= 0 then
+  if self.input:down("fire") then
     if self.input:down("target_lock") then
       return
     end
@@ -224,20 +209,34 @@ function WeaponSystem:update(dt)
     local mw = self.world:getResource("mouse_world")
     if mw then
       local hoverTarget = self:findTargetAtPosition(mw.x, mw.y)
+      local targetToUse = nil
+      local targetX, targetY = mw.x, mw.y
 
-      -- Priority: Hovered Target -> Locked Target (if appropriate for weapon?) -> Manual Aim
-      -- Actually, traditionally:
-      -- If missile: Look for Lock. If no lock, maybe dumb fire?
-      -- If beam/projectile: Aim at mouse. If mouse over target, aim at target center.
-
+      -- Determine Target
       if WeaponLogic.isValidTarget(hoverTarget) then
-        WeaponLogic.fireAtTarget(self.world, physicsWorld, ship, weapon, hoverTarget)
+        targetToUse = hoverTarget
+        targetX, targetY = hoverTarget.physics_body.body:getPosition()
       elseif target and weapon.type == "missile" then
-        -- Missiles prefer locked target
-        WeaponLogic.fireAtTarget(self.world, physicsWorld, ship, weapon, target)
-      else
-        WeaponLogic.fireAtPosition(self.world, physicsWorld, ship, weapon, mw.x, mw.y)
+        targetToUse = target
+        targetX, targetY = target.physics_body.body:getPosition()
       end
+
+      -- If Beam, maintain it (Visual + Tick)
+      if weapon.type == "beam" then
+        WeaponLogic.maintainBeam(self.world, physicsWorld, ship, weapon, targetX, targetY, dt)
+      elseif weapon.timer <= 0 then
+        -- Conventional Fire
+        if targetToUse then
+          WeaponLogic.fireAtTarget(self.world, physicsWorld, ship, weapon, targetToUse)
+        else
+          WeaponLogic.fireAtPosition(self.world, physicsWorld, ship, weapon, targetX, targetY)
+        end
+      end
+    end
+  else
+    -- Fire button released or not pressed
+    if weapon.type == "beam" then
+      WeaponLogic.stopBeam(weapon)
     end
   end
 

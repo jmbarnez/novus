@@ -70,13 +70,9 @@ function EnemyAISystem:fixedUpdate(dt)
         local angleDiff = normalizeAngle(desiredAngle - eAngle)
 
         -- Decide behavior state
-        -- "Only approach within engage range" logic:
-        -- If player is outside engage range, do nothing (IDLE).
-        -- If player is inside engage range, fight (ENGAGE).
-        -- With new CHASE logic:
-        -- If dist > engageRange but < detectionRange (say 2000), CHASE.
-        local detectionRange = 2000
-        
+        -- Only react within detectionRange (>= engageRange).
+        local detectionRange = brain.detectionRange or brain.engageRange
+
         if dist > detectionRange then
             brain.state = "idle"
         elseif dist > brain.engageRange then
@@ -110,7 +106,7 @@ function EnemyAISystem:fixedUpdate(dt)
             if math.abs(angleDiff) < 0.5 then
                 thrust = 1.0
             end
-            
+
             -- Brake if we are going too fast or need to turn sharply?
             -- ship_control handles max speed, so full thrust is okay.
         elseif brain.state == "engage" then
@@ -136,7 +132,15 @@ function EnemyAISystem:fixedUpdate(dt)
 
                 -- Fire if roughly facing target
                 if math.abs(angleDiff) < weapon.coneHalfAngle then
-                    WeaponLogic.fireAtTarget(self.world, physicsWorld, e, weapon, playerState.ship)
+                    WeaponLogic.fireAtTarget(self.world, physicsWorld, e, weapon, playerState.ship, dt)
+                else
+                    if weapon.type == "beam" then WeaponLogic.stopBeam(weapon) end
+                end
+            else
+                -- Out of range or no weapon, ensure beam stops if it was active
+                if e:has("weapon") then
+                    local weapon = e.weapon
+                    if weapon.type == "beam" then WeaponLogic.stopBeam(weapon) end
                 end
             end
         end

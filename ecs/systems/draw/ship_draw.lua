@@ -1,5 +1,6 @@
 local Utils = require("ecs.systems.draw.render_utils")
 local WeaponDraw = require("ecs.systems.draw.weapon_draw")
+local ShieldRippleDraw = require("ecs.systems.draw.shield_ripple_draw")
 
 local ShipDraw = {}
 
@@ -155,21 +156,26 @@ local function drawLaserBeam(e)
   end
 
   local beam = e.laser_beam
-  local t = beam.t / beam.duration
+  local t = beam.duration and beam.duration > 0 and (beam.t / beam.duration) or 0
+
+  local color = beam.color or { 0.00, 1.00, 1.00, 0.65 }
+  local width = beam.width or 3
+  local outerWidth = width * 2
+  local coreWidth = math.max(1, width * 0.5)
 
   -- Outer glow
-  love.graphics.setLineWidth(5)
-  love.graphics.setColor(0.00, 0.80, 1.00, 0.25 * t)
+  love.graphics.setLineWidth(outerWidth)
+  love.graphics.setColor(color[1] or 0, color[2] or 1, color[3] or 1, (color[4] or 1) * 0.35 * t)
   love.graphics.line(beam.startX, beam.startY, beam.endX, beam.endY)
 
   -- Main beam
-  love.graphics.setLineWidth(3)
-  love.graphics.setColor(0.00, 1.00, 1.00, 0.65 * t)
+  love.graphics.setLineWidth(width)
+  love.graphics.setColor(color[1] or 0, color[2] or 1, color[3] or 1, (color[4] or 1) * 0.9 * t)
   love.graphics.line(beam.startX, beam.startY, beam.endX, beam.endY)
 
   -- Core
-  love.graphics.setLineWidth(1.5)
-  love.graphics.setColor(1.00, 1.00, 1.00, 0.35 * t)
+  love.graphics.setLineWidth(coreWidth)
+  love.graphics.setColor(1.00, 1.00, 1.00, 0.4 * t)
   love.graphics.line(beam.startX, beam.startY, beam.endX, beam.endY)
 
   love.graphics.setLineWidth(2)
@@ -270,6 +276,9 @@ local function drawHealthBar(ctx, e, angle)
 end
 
 function ShipDraw.draw(ctx, e, body, shape, x, y, angle)
+  -- Draw shield ripple effects first (behind the ship)
+  ShieldRippleDraw.draw(e, x, y)
+
   love.graphics.push()
   love.graphics.translate(x, y)
   love.graphics.rotate(angle)

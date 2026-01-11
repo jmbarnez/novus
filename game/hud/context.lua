@@ -62,10 +62,12 @@ function HudContext.build(world, ships)
       ctx.mouseWorldY = mw.y
     end
 
-    if targetShip:has("auto_cannon") then
-      ctx.weaponCooldown = targetShip.auto_cannon.cooldown or ctx.weaponCooldown
-      ctx.weaponTimer = targetShip.auto_cannon.timer or ctx.weaponTimer
-      ctx.weaponConeHalfAngle = targetShip.auto_cannon.coneHalfAngle
+    if targetShip:has("weapon") then
+      local w = targetShip.weapon
+      ctx.weaponName = w.name
+      ctx.weaponCooldown = w.cooldown or ctx.weaponCooldown
+      ctx.weaponTimer = w.timer or ctx.weaponTimer
+      ctx.weaponConeHalfAngle = w.coneHalfAngle
     end
 
     if targetShip:has("hull") then

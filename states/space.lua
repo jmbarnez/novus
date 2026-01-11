@@ -129,7 +129,8 @@ function Space:enter(_, worldSeed)
     Systems.RefinerySystem,
     Systems.SoundSystem,
     Systems.EnemyAISystem,
-    Systems.ExplosionSystem
+    Systems.ExplosionSystem,
+    Systems.ShieldRippleSystem
   )
 
   self.ecsWorld.__profiler = self.profiler.concord

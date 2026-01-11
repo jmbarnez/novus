@@ -3,6 +3,7 @@ local ShatterDraw = {}
 function ShatterDraw.draw(e, body, x, y)
   -- local x, y = body:getPosition() -- Using interpolated values
   local c = e.shatter
+  local color = (e.renderable and e.renderable.color) or { 0.00, 1.00, 1.00, 0.95 }
 
   local t = 0
   if c.duration and c.duration > 0 then
@@ -27,7 +28,7 @@ function ShatterDraw.draw(e, body, x, y)
     love.graphics.line(sh.x - hx, sh.y - hy, sh.x + hx, sh.y + hy)
 
     love.graphics.setLineWidth(2)
-    love.graphics.setColor(0.00, 1.00, 1.00, 0.95 * a)
+    love.graphics.setColor(color[1] or 0, color[2] or 1, color[3] or 1, (color[4] or 1) * a)
     love.graphics.line(sh.x - hx, sh.y - hy, sh.x + hx, sh.y + hy)
   end
 

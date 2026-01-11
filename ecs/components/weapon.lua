@@ -1,6 +1,7 @@
 local Concord = require("lib.concord")
 
 Concord.component("weapon", function(c, def)
+    c.name = def.name or "Weapon"
     c.type = def.type or "projectile" -- projectile, beam, missile
 
     -- Generics

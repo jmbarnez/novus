@@ -36,10 +36,13 @@ end
 -- Visual effects
 --------------------------------------------------------------------------------
 
-local function spawnImpactEffect(world, physicsWorld, x, y)
+local function spawnImpactEffect(world, physicsWorld, x, y, color)
   if not physicsWorld then
     return
   end
+
+  color = color or { 1, 1, 1, 1 }
+  color = { color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1 }
 
   local effectBody = love.physics.newBody(physicsWorld, x, y, "static")
   local effectShape = love.physics.newCircleShape(1)
@@ -51,7 +54,7 @@ local function spawnImpactEffect(world, physicsWorld, x, y)
 
   world:newEntity()
       :give("physics_body", effectBody, effectShape, effectFixture)
-      :give("renderable", "shatter", { 1, 1, 1, 1 })
+      :give("renderable", "shatter", color)
       :give("shatter")
 end
 
@@ -90,7 +93,33 @@ local function tryHit(projectile, target, contact)
         local absorbed = math.min(shield.current, damage)
         shield.current = shield.current - absorbed
         damage = damage - absorbed
-        -- Visual effect could be added here for shield hit
+
+        -- Spawn shield hit visual effect
+        if target:has("physics_body") and target.physics_body.body then
+          local targetBody = target.physics_body.body
+          local tx, ty = targetBody:getPosition()
+          local targetAngle = targetBody:getAngle()
+
+          -- Get impact world position
+          local impactX, impactY = ImpactUtil.calculateImpactPosition(projectile, target, contact)
+
+          -- Convert to local coordinates relative to target
+          local dx = impactX - tx
+          local dy = impactY - ty
+          local cosA = math.cos(-targetAngle)
+          local sinA = math.sin(-targetAngle)
+          local localX = dx * cosA - dy * sinA
+          local localY = dx * sinA + dy * cosA
+
+          -- Add hit to shield_hit component
+          target:ensure("shield_hit")
+          table.insert(target.shield_hit.hits, {
+            localX = localX,
+            localY = localY,
+            time = 0,
+            duration = 0.4
+          })
+        end
       end
     end
 
@@ -118,7 +147,8 @@ local function tryHit(projectile, target, contact)
     local physicsWorld = world and world:getResource("physics")
     local x, y = ImpactUtil.calculateImpactPosition(projectile, target, contact)
 
-    spawnImpactEffect(world, physicsWorld, x, y)
+    local color = projectile.renderable and projectile.renderable.color
+    spawnImpactEffect(world, physicsWorld, x, y, color)
 
     if world then
       world:emit("onProjectileImpact", x, y)

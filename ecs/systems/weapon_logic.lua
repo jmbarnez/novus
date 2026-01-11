@@ -12,11 +12,34 @@ function WeaponLogic.isValidTarget(e)
   return e
       and e.inWorld
       and e:inWorld()
-      and e:has("physics_body")
+      and (e:has("physics_body") or e:has("space_station"))
       and (
         (e:has("health") and e.health.current > 0) or
-        (e:has("hull") and e.hull.current > 0)
+        (e:has("hull") and e.hull.current > 0) or
+        e:has("asteroid") or
+        e:has("space_station")
       )
+end
+
+local function spawnImpactEffect(world, physicsWorld, x, y, color)
+  if not physicsWorld then return end
+
+  color = color or { 1, 1, 1, 1 }
+  local r, g, b, a = unpack(color)
+  -- Reduced alpha for beam spark
+  local sparkColor = { r, g, b, (a or 1) * 0.8 }
+
+  local effectBody = love.physics.newBody(physicsWorld, x, y, "static")
+  local effectShape = love.physics.newCircleShape(1)
+  local effectFixture = love.physics.newFixture(effectBody, effectShape, 0)
+  effectFixture:setSensor(true)
+  effectFixture:setCategory(8)
+  effectFixture:setMask(1, 2, 4, 8)
+
+  world:newEntity()
+      :give("physics_body", effectBody, effectShape, effectFixture)
+      :give("renderable", "shatter", sparkColor)
+      :give("shatter")
 end
 
 function WeaponLogic.getClampedAimDir(shipBody, dx, dy, coneHalfAngle)
@@ -43,10 +66,21 @@ function WeaponLogic.getClampedAimDir(shipBody, dx, dy, coneHalfAngle)
   return cos(finalAngle), sin(finalAngle)
 end
 
+-- Turret mount offset from ship center (in ship-local coordinates)
+-- Conceptually a bottom-mounted turret (invisible, beneath the 2D sprite)
+local TURRET_OFFSET_X = 12 -- Forward, near ship nose
+local TURRET_OFFSET_Y = 0  -- Centered (the turret is conceptually "under" the ship)
+
 function WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
   local sx, sy = shipBody:getPosition()
-  local muzzleOffset = 18
-  return sx + dirX * muzzleOffset, sy + dirY * muzzleOffset
+  local shipAngle = shipBody:getAngle()
+
+  -- Transform turret offset from ship-local to world coordinates
+  local cosA, sinA = cos(shipAngle), sin(shipAngle)
+  local turretX = sx + TURRET_OFFSET_X * cosA - TURRET_OFFSET_Y * sinA
+  local turretY = sy + TURRET_OFFSET_X * sinA + TURRET_OFFSET_Y * cosA
+
+  return turretX, turretY
 end
 
 --------------------------------------------------------------------------------
@@ -125,8 +159,8 @@ local function spawnMissile(world, physicsWorld, ship, weapon, dirX, dirY)
 
   local missile = world:newEntity()
       :give("physics_body", body, shape, fixture)
-      -- Uses projectile renderer for now, or specific missile sprite
-      :give("renderable", "projectile", { 1, 0.2, 0.2, 1 })
+      -- Uses projectile renderer; color pulled from weapon definition
+      :give("renderable", "projectile", weapon.projectileColor or { 1, 0.2, 0.2, 1 })
       :give("projectile", weapon.damage, weapon.projectileTtl or 5, ship, weapon.miningEfficiency)
       :give("missile", weapon.target, weapon.damage, weapon.missileSpeed, weapon.missileTurnRate, weapon.missileAccel,
         weapon.projectileTtl)
@@ -146,7 +180,15 @@ local function spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
   -- Let's make it create a generic "laser_beam" entity that lives for a short time.
 
   local shipBody = ship.physics_body.body
-  local sx, sy = shipBody:getPosition()
+
+  -- Clamp aim to turret cone, fall back to ship forward if aim unavailable.
+  local clampedX, clampedY = WeaponLogic.getClampedAimDir(shipBody, dirX, dirY, weapon.coneHalfAngle)
+  if not clampedX then
+    clampedX, clampedY = shipBody:getWorldVector(1, 0)
+  end
+  dirX, dirY = clampedX, clampedY
+
+  local sx, sy = WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
   local range = weapon.range or 1000
 
   -- Raycast
@@ -178,21 +220,168 @@ local function spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
 
   -- Apply damage if hit
   if hitEntity then
-    if hitEntity:has("health") then
-      hitEntity.health.current = hitEntity.health.current - weapon.damage
-      world:emit("onDamageTaken", hitEntity, weapon.damage, ship)
-    elseif hitEntity:has("asteroid") then
-      -- Mining?
-      world:emit("onAsteroidHit", hitEntity, weapon.damage, ship, weapon.miningEfficiency)
+    local damage = weapon.damage
+
+    -- Check shield first
+    if hitEntity:has("shield") and hitEntity.shield.current > 0 then
+      local shield = hitEntity.shield
+      local absorbed = math.min(shield.current, damage)
+      shield.current = shield.current - absorbed
+      damage = damage - absorbed
+    end
+
+    if damage > 0 then
+      if hitEntity:has("health") then
+        hitEntity.health.current = hitEntity.health.current - damage
+        world:emit("onDamageTaken", hitEntity, damage, ship)
+      elseif hitEntity:has("asteroid") then
+        -- Mining?
+        world:emit("onAsteroidHit", hitEntity, weapon.damage, ship, weapon.miningEfficiency)
+      end
     end
   end
 
   -- visuals
   world:newEntity()
-      :give("laser_beam", sx, sy, hitX, hitY, weapon.beamColor or { 1, 0, 1, 1 }, weapon.beamDuration or 0.1,
+      :give("laser_beam",
+        weapon.beamDuration or 0.1, -- duration
+        sx, sy,                     -- start
+        hitX, hitY,                 -- end
+        weapon.beamColor or { 1, 0, 1, 1 },
         weapon.beamWidth or 2)
 
   return true
+end
+
+function WeaponLogic.stopBeam(weapon)
+  if weapon.beamEntity then
+    if weapon.beamEntity:inWorld() then
+      weapon.beamEntity:destroy()
+    end
+    weapon.beamEntity = nil
+  end
+end
+
+function WeaponLogic.maintainBeam(world, physicsWorld, ship, weapon, targetX, targetY, dt)
+  local shipBody = ship.physics_body.body
+
+  -- Clamp aim to turret cone, fall back to ship forward if aim unavailable.
+  local clampedX, clampedY = WeaponLogic.getClampedAimDir(shipBody, targetX - shipBody:getX(), targetY - shipBody:getY(),
+    weapon.coneHalfAngle)
+  if not clampedX then
+    clampedX, clampedY = shipBody:getWorldVector(1, 0)
+  end
+
+  local muzzleX, muzzleY = WeaponLogic.getMuzzlePosition(shipBody, clampedX, clampedY)
+
+  local range = weapon.range or 1000
+  local tx = muzzleX + clampedX * range
+  local ty = muzzleY + clampedY * range
+
+  -- Raycast
+  local closestFraction = 1
+  local hitEntity = nil
+  local hitX, hitY = tx, ty
+
+  local function rayCallback(fixture, x, y, xn, yn, fraction)
+    if fixture:isSensor() then return -1 end
+    local entity = fixture:getUserData()
+    if entity == ship then return -1 end
+
+    if fraction < closestFraction then
+      closestFraction = fraction
+      hitEntity = entity
+      hitX, hitY = x, y
+    end
+    return 1
+  end
+
+  physicsWorld:rayCast(muzzleX, muzzleY, tx, ty, rayCallback)
+
+  -- VISUAL UPDATE
+  local beamEntity = weapon.beamEntity
+  if beamEntity and (not beamEntity.laser_beam or not beamEntity:inWorld()) then
+    weapon.beamEntity = nil
+    beamEntity = nil
+  end
+
+  if not beamEntity then
+    -- Create new
+    beamEntity = world:newEntity()
+        :give("laser_beam",
+          weapon.beamDuration or 0.1,
+          muzzleX, muzzleY, hitX, hitY,
+          weapon.beamColor or { 0, 1, 1, 1 },
+          weapon.beamWidth or 2
+        )
+    weapon.beamEntity = beamEntity
+  else
+    -- Update existing
+    local beam = beamEntity.laser_beam
+    beam.startX, beam.startY = muzzleX, muzzleY
+    beam.endX, beam.endY = hitX, hitY
+    beam.color = weapon.beamColor or { 0, 1, 1, 1 }
+    beam.width = weapon.beamWidth or 2
+
+    -- Keep alive
+    beam.t = beam.duration -- Reset timer so it doesn't die while held
+  end
+
+  -- DAMAGE TICK
+  if weapon.timer <= 0 then
+    if hitEntity then
+      local damage = weapon.damage
+
+      -- Check shield first
+      if hitEntity:has("shield") and hitEntity.shield.current > 0 then
+        local shield = hitEntity.shield
+        local absorbed = math.min(shield.current, damage)
+        shield.current = shield.current - absorbed
+        damage = damage - absorbed
+
+        -- Spawn shield ripple effect
+        if hitEntity:has("physics_body") and hitEntity.physics_body.body then
+          local body = hitEntity.physics_body.body
+          local tx, ty = body:getPosition()
+          local angle = body:getAngle()
+          local dx = hitX - tx
+          local dy = hitY - ty
+          local cosA = math.cos(-angle)
+          local sinA = math.sin(-angle)
+          local localX = dx * cosA - dy * sinA
+          local localY = dx * sinA + dy * cosA
+
+          hitEntity:ensure("shield_hit")
+          table.insert(hitEntity.shield_hit.hits, {
+            localX = localX,
+            localY = localY,
+            time = 0,
+            duration = 0.4
+          })
+        end
+      end
+
+      if damage > 0 then
+        -- Apply remaining damage to hull/health
+        if hitEntity:has("health") then
+          hitEntity.health.current = hitEntity.health.current - damage
+          world:emit("onDamageTaken", hitEntity, damage, ship)
+        elseif hitEntity:has("asteroid") then
+          world:emit("onAsteroidHit", hitEntity, weapon.damage, ship, weapon.miningEfficiency)
+        elseif hitEntity:has("hull") then
+          hitEntity.hull.current = hitEntity.hull.current - damage
+          hitEntity:ensure("hit_flash")
+          hitEntity.hit_flash.t = hitEntity.hit_flash.duration
+        end
+      end
+
+      -- Spawn hit effect
+      spawnImpactEffect(world, physicsWorld, hitX, hitY, weapon.beamColor)
+    end
+
+    -- Reset Timer
+    weapon.timer = weapon.cooldown
+  end
 end
 
 --------------------------------------------------------------------------------
@@ -207,7 +396,12 @@ local function triggerConeVisual(weapon)
   end
 end
 
-function WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, targetX, targetY)
+function WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, targetX, targetY, dt)
+  if weapon.type == "beam" and dt then
+    WeaponLogic.maintainBeam(world, physicsWorld, ship, weapon, targetX, targetY, dt)
+    return true
+  end
+
   if weapon.timer > 0 then
     return false
   end
@@ -228,6 +422,7 @@ function WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, targetX, targ
   if weapon.type == "missile" then
     return spawnMissile(world, physicsWorld, ship, weapon, dirX, dirY)
   elseif weapon.type == "beam" then
+    -- Fallback if no dt provided (shouldn't happen if updated correctly)
     return spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
   else
     -- Projectile (handle count/spread)
@@ -272,7 +467,7 @@ function WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, targetX, targ
   end
 end
 
-function WeaponLogic.fireAtTarget(world, physicsWorld, ship, weapon, target)
+function WeaponLogic.fireAtTarget(world, physicsWorld, ship, weapon, target, dt)
   if not WeaponLogic.isValidTarget(target) then
     return false
   end
@@ -283,13 +478,13 @@ function WeaponLogic.fireAtTarget(world, physicsWorld, ship, weapon, target)
   end
 
   local tx, ty = target.physics_body.body:getPosition()
-  return WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, tx, ty)
+  return WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, tx, ty, dt)
 end
 
-function WeaponLogic.fireAtPosition(world, physicsWorld, ship, weapon, worldX, worldY)
+function WeaponLogic.fireAtPosition(world, physicsWorld, ship, weapon, worldX, worldY, dt)
   -- Clear target if firing at position manually
   weapon.target = nil
-  return WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, worldX, worldY)
+  return WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, worldX, worldY, dt)
 end
 
 return WeaponLogic
