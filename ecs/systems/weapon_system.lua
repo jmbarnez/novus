@@ -1,17 +1,9 @@
 local Concord = require("lib.concord")
 local WeaponLogic = require("ecs.systems.weapon_logic")
 local WeaponDraw = require("ecs.systems.draw.weapon_draw")
-local WeaponFactory = require("game.factory.weapon_factory")
 local Math = require("util.math")
 
 local max = math.max
-
-local WEAPON_LIST = {
-  "vulcan_cannon",
-  "plasma_splitter", -- scatter-shot
-  "mining_laser",    -- continuous mining beam
-  "pulse_laser",     -- slow fire, high speed pulse
-}
 
 local WeaponSystem = Concord.system({
   weapons = { "weapon", "physics_body" },
@@ -98,35 +90,6 @@ function WeaponSystem:update(dt)
   if not ship or not ship:has("weapon") or not ship:has("physics_body") then return end
 
   local weapon = ship.weapon
-
-  -- Debug: Swap weapons
-  if self.input:pressed("next_weapon") or self.input:pressed("prev_weapon") then
-    if not self.currentWeaponIndex then self.currentWeaponIndex = 1 end
-
-    local dir = self.input:pressed("next_weapon") and 1 or -1
-    self.currentWeaponIndex = self.currentWeaponIndex + dir
-
-    if self.currentWeaponIndex > #WEAPON_LIST then self.currentWeaponIndex = 1 end
-    if self.currentWeaponIndex < 1 then self.currentWeaponIndex = #WEAPON_LIST end
-
-    -- Stop any active beam before swapping out to avoid orphaned visuals/entities.
-    if weapon.type == "beam" then
-      WeaponLogic.stopBeam(weapon)
-    end
-
-    local newWeapon = WEAPON_LIST[self.currentWeaponIndex]
-    print("Switching to weapon: " .. newWeapon)
-
-    -- Cleanup old components that might not be overwritten
-    ship:remove("missile")
-
-    WeaponFactory.create(ship, newWeapon)
-
-    -- Refresh local reference since component was replaced?
-    -- Concord reuses the table usually? No, `give` might create new instance.
-    -- Safest to return early or re-fetch.
-    return
-  end
 
   -- Update timers
   weapon.timer = max(0, weapon.timer - dt)
