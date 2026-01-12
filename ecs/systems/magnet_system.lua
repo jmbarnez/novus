@@ -3,7 +3,7 @@ local MathUtil = require("util.math")
 
 local MagnetSystem = Concord.system({
   pickups = { "pickup", "physics_body" },
-  reward_orbs = { "reward_orb", "physics_body" },
+  xp_orbs = { "xp_orb", "physics_body" },
 })
 
 local clamp = MathUtil.clamp
@@ -86,7 +86,7 @@ function MagnetSystem:fixedUpdate(dt)
   end
 
   processCollectables(self.pickups)
-  processCollectables(self.reward_orbs)
+  processCollectables(self.xp_orbs)
 end
 
 return MagnetSystem

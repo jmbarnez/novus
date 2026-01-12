@@ -6,7 +6,7 @@ local Inventory = require("game.inventory")
 local Items = require("game.items")
 local FloatingText = require("ecs.util.floating_text")
 local PickupFactory = require("game.factory.pickup")
-local RewardOrbFactory = require("game.factory.reward_orb")
+local XpOrbFactory = require("game.factory.xp_orb")
 
 local PickupSystem = Concord.system({
   ships = { "ship", "cargo", "cargo_hold", "physics_body" },
@@ -127,16 +127,43 @@ local function tryCollect(ship, pickup)
     return false
   end
 
-  if not (ship:has("cargo") and ship:has("cargo_hold")) then
-    return false
-  end
-
   if not pickup:has("pickup") then
     return false
   end
 
   local p = pickup.pickup
   if not p.id or not p.volume or p.volume <= 0 then
+    return false
+  end
+
+  -- Credits: bypass cargo, add directly to player wallet
+  if p.id == "credits" then
+    local world = ship:getWorld()
+    local player = world and world:getResource("player")
+    if not player or not player:has("credits") then
+      return false
+    end
+
+    player.credits.balance = player.credits.balance + p.volume
+
+    local body = pickup.physics_body and pickup.physics_body.body
+    if world and body then
+      local x, y = body:getPosition()
+      FloatingText.spawn(world, x, y - 8, "+" .. p.volume .. " cr", {
+        kind = "credits",
+        color = { 1.0, 0.92, 0.25, 1.0 },
+        riseSpeed = 50,
+        duration = 0.85,
+        scale = 0.95,
+      })
+    end
+
+    Physics.destroyPhysics(pickup)
+    pickup:destroy()
+    return true
+  end
+
+  if not (ship:has("cargo") and ship:has("cargo_hold")) then
     return false
   end
 
@@ -195,8 +222,8 @@ local function tryCollect(ship, pickup)
   return true
 end
 
-local function tryCollectRewardOrb(ship, orb)
-  if not ship or not orb or not orb:has("reward_orb") then
+local function tryCollectXpOrb(ship, orb)
+  if not ship or not orb or not orb:has("xp_orb") then
     return false
   end
 
@@ -206,24 +233,28 @@ local function tryCollectRewardOrb(ship, orb)
     return false
   end
 
-  local reward = orb.reward_orb
+  local reward = orb.xp_orb
   local amount = reward.amount or 0
   if amount <= 0 then
     return false
   end
 
-  if reward.kind == "credits" then
-    if not player:has("credits") then
-      return false
-    end
-    player.credits.balance = player.credits.balance + amount
-  elseif reward.kind == "xp" then
-    if not player:has("player_progress") then
-      return false
-    end
-    player.player_progress.xp = player.player_progress.xp + amount
-  else
+  if not player:has("player_progress") then
     return false
+  end
+
+  player.player_progress.xp = player.player_progress.xp + amount
+
+  local body = orb.physics_body and orb.physics_body.body
+  if world and body then
+    local x, y = body:getPosition()
+    FloatingText.spawn(world, x, y - 8, "+" .. amount .. " XP", {
+      kind = "xp",
+      color = { 1.0, 0.95, 0.4, 1.0 },
+      riseSpeed = 55,
+      duration = 0.85,
+      scale = 0.95,
+    })
   end
 
   Physics.destroyPhysics(orb)
@@ -236,8 +267,8 @@ function PickupSystem:onAttemptCollect(ship, pickup)
     return
   end
 
-  if pickup:has("reward_orb") then
-    tryCollectRewardOrb(ship, pickup)
+  if pickup:has("xp_orb") then
+    tryCollectXpOrb(ship, pickup)
   else
     tryCollect(ship, pickup)
   end
@@ -289,16 +320,16 @@ function PickupSystem:onShipDestroyed(ship, x, y)
     return MathUtil.randRange(-55, 55), MathUtil.randRange(-55, 55)
   end
 
-  -- Spawn credit orb
+  -- Spawn credit pickup item (non-cargo, converted on collect)
   if player:has("credits") then
     local vx, vy = jitter()
-    RewardOrbFactory.spawn(world, physicsWorld, "credits", creditReward, x, y, vx, vy)
+    spawnPickup(world, physicsWorld, "credits", x, y, creditReward)
   end
 
-  -- Spawn XP orb (yellow)
+  -- Spawn XP orb (yellow electric)
   if player:has("player_progress") then
     local vx, vy = jitter()
-    RewardOrbFactory.spawn(world, physicsWorld, "xp", xpReward, x, y, vx, vy)
+    XpOrbFactory.spawn(world, physicsWorld, xpReward, x, y, vx, vy)
   end
 end
 

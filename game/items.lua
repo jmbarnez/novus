@@ -14,6 +14,7 @@ Items.register(require("game.items.iron"))
 Items.register(require("game.items.mithril"))
 Items.register(require("game.items.iron_ingot"))
 Items.register(require("game.items.mithril_ingot"))
+Items.register(require("game.items.credits"))
 
 function Items.get(id)
   return Items.defs[id]
