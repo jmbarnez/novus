@@ -1,40 +1,38 @@
 return {
   id = "credits",
   name = "Credits",
-  color = { 0.95, 0.88, 0.25, 0.95 },
+  color = { 0.95, 0.80, 0.30, 0.98 }, -- Gold coin color
   unitVolume = 0,           -- Does not consume cargo space
   maxStackVolume = 1000000, -- Effectively unlimited per stack
   icon = {
-    kind = "poly",
-    points = {
-      -0.55, -0.05,
-      -0.35, -0.45,
-      0.40, -0.50,
-      0.55, 0.00,
-      0.35, 0.45,
-      -0.25, 0.50,
-    },
-    shadow = { dx = 0.08, dy = 0.08, a = 0.25 },
-    fillA = 0.95,
-    outline = { a = 0.9, width = 1.2 },
-    highlight = {
-      kind = "polyline",
-      points = {
-        -0.20, -0.10,
-        0.35, -0.05,
-        0.15, 0.25,
-      },
-      a = 0.22,
+    kind = "circle",
+    radius = 0.50,
+    shadow = { dx = 0.08, dy = 0.08, a = 0.35 },
+    fillA = 0.96,
+    outline = { a = 0.95, width = 1.5 },
+    innerRing = {
+      kind = "circle",
+      radius = 0.38,
+      a = 0.70,
       width = 1.2,
     },
     detail = {
-      kind = "line",
-      points = {
-        -0.15, -0.20,
-        0.00, 0.30,
-      },
-      a = 0.30,
-      width = 1.0,
+      kind = "arc",
+      -- "C" shape in center
+      radius = 0.22,
+      startAngle = 0.5,
+      endAngle = 5.8,
+      color = { 0.40, 0.30, 0.10, 0.95 },
+      a = 0.95,
+      width = 2.5,
+    },
+    highlight = {
+      kind = "arc",
+      radius = 0.42,
+      startAngle = 3.5,
+      endAngle = 4.7,
+      a = 0.40,
+      width = 1.2,
     },
   },
 }

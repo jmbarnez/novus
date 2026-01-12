@@ -4,6 +4,12 @@ local function orbColor()
   return { 1.0, 0.95, 0.35, 0.98 } -- electric yellow
 end
 
+local function computeSize(amount)
+  local base = 4.0
+  local scaled = base + math.sqrt(math.max(amount or 0, 0)) * 0.5
+  return math.min(math.max(scaled, 4.0), 9.0) -- clamp to avoid huge orbs
+end
+
 --- Spawn an XP orb in the world
 ---@param world table Concord world
 ---@param physicsWorld table Box2D physics world
@@ -18,11 +24,13 @@ function M.spawn(world, physicsWorld, amount, x, y, vx, vy)
     return nil
   end
 
+  local size = computeSize(amount)
+
   local body = love.physics.newBody(physicsWorld, x, y, "dynamic")
   body:setLinearDamping(3.0)
   body:setAngularDamping(5.0)
 
-  local radius = 7
+  local radius = size
   local shape = love.physics.newCircleShape(radius)
   local fixture = love.physics.newFixture(body, shape, 0.15)
   fixture:setSensor(true)
@@ -38,7 +46,7 @@ function M.spawn(world, physicsWorld, amount, x, y, vx, vy)
   local e = world:newEntity()
       :give("physics_body", body, shape, fixture)
       :give("renderable", "xp_orb", orbColor())
-      :give("xp_orb", amount, phase)
+      :give("xp_orb", amount, phase, size)
 
   fixture:setUserData(e)
   return e

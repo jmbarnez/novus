@@ -38,9 +38,9 @@ function SoundSystem:onProjectileImpact(x, y)
 end
 
 function SoundSystem:onAsteroidDestroyed(entity, x, y, radius)
-    Sound.play("explosion_small", {
-        pitchVariation = 0.2,
-        volumeVariation = 0.1,
+    Sound.play("asteroid_break", {
+        pitchVariation = 0.08,
+        volumeVariation = 0.08,
     })
 end
 
