@@ -1,5 +1,6 @@
 local Concord = require("lib.concord")
 local Math = require("util.math")
+local Effects = require("ecs.util.effects")
 
 local clamp = Math.clamp
 local normalizeAngle = Math.normalizeAngle
@@ -21,25 +22,15 @@ function WeaponLogic.isValidTarget(e)
       )
 end
 
+-- Wrapper for beam impacts with reduced alpha
 local function spawnImpactEffect(world, physicsWorld, x, y, color)
-  if not physicsWorld then return end
-
-  color = color or { 1, 1, 1, 1 }
-  local r, g, b, a = unpack(color)
-  -- Reduced alpha for beam spark
-  local sparkColor = { r, g, b, (a or 1) * 0.8 }
-
-  local effectBody = love.physics.newBody(physicsWorld, x, y, "static")
-  local effectShape = love.physics.newCircleShape(1)
-  local effectFixture = love.physics.newFixture(effectBody, effectShape, 0)
-  effectFixture:setSensor(true)
-  effectFixture:setCategory(8)
-  effectFixture:setMask(1, 2, 4, 8)
-
-  world:newEntity()
-      :give("physics_body", effectBody, effectShape, effectFixture)
-      :give("renderable", "shatter", sparkColor)
-      :give("shatter")
+  if not color then
+    Effects.spawnShatter(world, physicsWorld, x, y)
+    return
+  end
+  -- Reduced alpha for beam spark effect
+  local r, g, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+  Effects.spawnShatter(world, physicsWorld, x, y, { r, g, b, a * 0.8 })
 end
 
 function WeaponLogic.getClampedAimDir(shipBody, dx, dy, coneHalfAngle)

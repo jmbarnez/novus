@@ -4,23 +4,16 @@ local unpack = table.unpack or rawget(_G, "unpack")
 
 local MathUtil = require("util.math")
 local Rng = require("util.rng")
+local OreTypes = require("game.data.ore_types")
+local AsteroidConfig = require("game.data.asteroids")
 
-local ORE_VARIANTS = {
-  { id = "iron",    tint = { 0.72, 0.72, 0.74, 1.0 } },
-  { id = "mithril", tint = { 0.22, 0.28, 0.46, 1.0 } },
-}
+-- Load from data files
+local ORE_VARIANTS = OreTypes.variants
+local BASE_COLORS = OreTypes.baseColors
+local TINT_BLEND = OreTypes.tintBlend
 
 local function pickAsteroidColor(rng)
-  local palette = {
-    { 0.58, 0.56, 0.54 },
-    { 0.54, 0.55, 0.60 },
-    { 0.60, 0.52, 0.46 },
-    { 0.46, 0.50, 0.44 },
-    { 0.62, 0.60, 0.50 },
-    { 0.50, 0.48, 0.56 },
-  }
-
-  local base = palette[rng:random(1, #palette)]
+  local base = BASE_COLORS[rng:random(1, #BASE_COLORS)]
   local v = 0.88 + 0.22 * rng:random()
   local tint = (rng:random() - 0.5) * 0.06
 
@@ -60,13 +53,14 @@ end
 -- Generate weighted resource composition for an asteroid
 -- Stone is common, iron is uncommon, mithril is rare
 local function generateComposition(rng)
-  local stonePct = MathUtil.randRangeRng(rng, 60, 85)
+  local compConfig = AsteroidConfig.composition
+  local stonePct = MathUtil.randRangeRng(rng, compConfig.stone.min, compConfig.stone.max)
   local remaining = 100 - stonePct
 
   -- Iron gets most of remaining, mithril is rare
-  local mithrilMax = math.min(15, remaining)
+  local mithrilMax = math.min(compConfig.mithrilMax, remaining)
   local mithrilPct = 0
-  if rng:random() < 0.35 then -- 35% chance to have any mithril
+  if rng:random() < compConfig.mithrilChance then
     mithrilPct = math.floor(MathUtil.randRangeRng(rng, 1, mithrilMax))
   end
 
@@ -307,10 +301,11 @@ function asteroids.spawnAsteroids(ecsWorld, physicsWorld, count, w, h, avoidX, a
   avoidRadius = avoidRadius or 0
   local padding = 40
 
-  local oreChance = 0.22
+  local oreChance = AsteroidConfig.oreChance
+  local radiusConfig = AsteroidConfig.radius
 
   for _ = 1, count do
-    local radius = MathUtil.randRangeRng(rng, 18, 46)
+    local radius = MathUtil.randRangeRng(rng, radiusConfig.min, radiusConfig.max)
 
     local x, y
     for _ = 1, 20 do

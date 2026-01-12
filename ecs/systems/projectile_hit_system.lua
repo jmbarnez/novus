@@ -4,6 +4,7 @@ local EntityUtil = require("ecs.util.entity")
 local ImpactUtil = require("ecs.util.impact")
 local FloatingText = require("ecs.util.floating_text")
 local ProjectileSystem = require("ecs.systems.projectile_system")
+local Effects = require("ecs.util.effects")
 
 local ProjectileHitSystem = Concord.system()
 
@@ -33,30 +34,9 @@ local function isValidTarget(projectile, target)
   return true
 end
 
---------------------------------------------------------------------------------
--- Visual effects
---------------------------------------------------------------------------------
-
+-- Alias using shared utility
 local function spawnImpactEffect(world, physicsWorld, x, y, color)
-  if not physicsWorld then
-    return
-  end
-
-  color = color or { 1, 1, 1, 1 }
-  color = { color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1 }
-
-  local effectBody = love.physics.newBody(physicsWorld, x, y, "static")
-  local effectShape = love.physics.newCircleShape(1)
-  local effectFixture = love.physics.newFixture(effectBody, effectShape, 0)
-
-  effectFixture:setSensor(true)
-  effectFixture:setCategory(8)
-  effectFixture:setMask(1, 2, 4, 8)
-
-  world:newEntity()
-      :give("physics_body", effectBody, effectShape, effectFixture)
-      :give("renderable", "shatter", color)
-      :give("shatter")
+  Effects.spawnShatter(world, physicsWorld, x, y, color)
 end
 
 --------------------------------------------------------------------------------

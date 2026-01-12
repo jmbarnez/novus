@@ -4,7 +4,6 @@ local WeaponDraw = require("ecs.systems.draw.weapon_draw")
 local WeaponFactory = require("game.factory.weapon_factory")
 local Math = require("util.math")
 
--- Localize frequently used functions
 local max = math.max
 
 local WEAPON_LIST = {
@@ -15,7 +14,7 @@ local WEAPON_LIST = {
 }
 
 local WeaponSystem = Concord.system({
-  targets = { "weapon", "physics_body" },
+  weapons = { "weapon", "physics_body" },
 })
 
 --------------------------------------------------------------------------------
@@ -32,66 +31,9 @@ function WeaponSystem:drawWeaponCone(body, weapon)
 end
 
 --------------------------------------------------------------------------------
--- Target Selection
+-- Target Selection (uses physics world query for efficiency)
 --------------------------------------------------------------------------------
 
-function WeaponSystem:findTargetAtPosition(worldX, worldY)
-  -- Iterate all entities with health/hull/asteroid to find a target under cursor
-  -- We don't have a list of targets here readily available efficiently without a query.
-  -- But wait, the original code looked at `self.targets`, but `self.targets` here is the WEAPONS.
-  -- The original code logic was flawed if it tried to find targets from `self.targets` which are weapons...
-  -- Actually, let's look at previous file content carefully.
-  -- "targets = { 'asteroid', 'health', 'physics_body' }" -- Wait, the system had MULTIPLE queries?
-  -- Concord systems can have multiple pools? Or was it a single pool definition?
-  -- "targets = { 'asteroid', 'health', 'physics_body' }" implies a query that matches entities having ALL those components?
-  -- No, likely the user meant entities that are potential targets.
-  -- Let's look at the original file again.
-  -- line 10: targets = { "asteroid", "health", "physics_body" } -> WRONG?
-  -- Actually, valid targets are asteroids OR enemies.
-  -- If I change `targets` to be weapons, I lose the list of potential targets for simple scan.
-  -- I should probably add a second pool for potential targets if I want to keep this logic efficient.
-  -- Or I can just query the world for entities with health/hull.
-
-  -- Let's redefine the system to have a `weapons` pool and a `potentialTargets` pool?
-  -- Concord support multiple pools?
-  -- Yes: `pool_name = { "comp1", "comp2" }`
-
-  return nil -- Placeholder, will fix in full replacement below
-end
-
--- Redefining system with multiple pools
-local WeaponSystem = Concord.system({
-  weapons = { "weapon", "physics_body" },
-  -- We need a pool for things we can target?
-  -- Actually, let's just use the physicsworld queries or keep it simple.
-  -- The previous code used `self.targets` which was seemingly all destructibles?
-  -- No, previous code line 34: `for i = 1, self.targets.size do`
-  -- and line 10 `targets = { "asteroid", "health", "physics_body" }`
-  -- That query means entities with ALL three? Asteroid AND Health AND PhysicsBody.
-  -- Most enemies have Hull/Health, not Asteroid.
-  -- Wait, looking at `asteroid.lua`... asteroids have `asteroid` component.
-  -- The previous query was likely wrong or incomplete for enemies?
-  -- Enemy ships have `hull`, `health`, `physics_body`.
-  -- So `targets` query wouldn't match enemies if it required `asteroid`.
-  -- Ah, Concord syntax `targets = { "asteroid", "health", "physics_body" }` creates a pool named "targets" containing entities with `asteroid` AND `health` AND `physics_body`.
-  -- If so, the original code only targeted asteroids?
-  -- Let's check `asteroid.lua`.
-
-  -- To fix this properly and support generic targeting:
-  -- We need to act on WEAPONS.
-  -- So the primary pool should be `weapons`.
-})
-
-function WeaponSystem:init(world)
-  self.world = world
-  self.input = world:getResource("input")
-end
-
-function WeaponSystem:drawWeaponCone(body, weapon)
-  return WeaponDraw.drawWeaponCone(body, weapon)
-end
-
--- Helper to find target under mouse
 function WeaponSystem:findTargetAtPosition(worldX, worldY)
   -- Query physics world for efficiency
   local physics = self.world:getResource("physics")

@@ -40,6 +40,8 @@ end
 
 function Space:enter(_, worldSeed)
   local Settings = require("game.settings")
+  local SectorConfig = require("game.data.sectors.sector_01")
+
   self.accumulator = 0
   -- Box2D callbacks can occur during physics stepping; we buffer contacts and emit
   -- ECS events after the step to avoid mutating entities mid-step.
@@ -64,10 +66,10 @@ function Space:enter(_, worldSeed)
   self.view = {}
   self.profiler = Profiler.new()
 
-  -- Sector grid foundation: current sector at (0,0)
+  -- Load sector dimensions from config
   self.currentSector = { x = 0, y = 0 }
-  self.sectorWidth = 10000
-  self.sectorHeight = 10000
+  self.sectorWidth = SectorConfig.width
+  self.sectorHeight = SectorConfig.height
   self.sectorOriginX = self.currentSector.x * self.sectorWidth
   self.sectorOriginY = self.currentSector.y * self.sectorHeight
 
@@ -147,49 +149,51 @@ function Space:enter(_, worldSeed)
 
   factory.createWalls(self.physicsWorld, self.sectorWidth, self.sectorHeight)
 
-  -- Create the main hub space station at sector center
-  self.spaceStation = factory.createSpaceStation(
-    self.ecsWorld,
-    self.physicsWorld,
-    self.sectorWidth / 2,
-    self.sectorHeight / 2,
-    "hub"
-  )
+  -- Create stations from sector config
+  local hubStation = nil
+  for _, stationDef in ipairs(SectorConfig.stations) do
+    local stationX = stationDef.position.x * self.sectorWidth
+    local stationY = stationDef.position.y * self.sectorHeight
 
-  -- Create the refinery station offset from the hub
-  self.refineryStation = factory.createRefineryStation(
-    self.ecsWorld,
-    self.physicsWorld,
-    self.sectorWidth / 2 + 1500,
-    self.sectorHeight / 2 - 800
-  )
+    if stationDef.type == "hub" then
+      hubStation = factory.createSpaceStation(self.ecsWorld, self.physicsWorld, stationX, stationY, "hub")
+      self.spaceStation = hubStation
+    elseif stationDef.type == "refinery" then
+      self.refineryStation = factory.createRefineryStation(self.ecsWorld, self.physicsWorld, stationX, stationY)
+    end
+  end
 
-  -- Store spawn position for respawning
-  self.spawnX = self.sectorWidth / 2 + 650
-  self.spawnY = self.sectorHeight / 2
+  -- Player spawn relative to hub station
+  local hubX = SectorConfig.stations[1].position.x * self.sectorWidth
+  local hubY = SectorConfig.stations[1].position.y * self.sectorHeight
+  self.spawnX = hubX + SectorConfig.player.spawnOffset.x
+  self.spawnY = hubY + SectorConfig.player.spawnOffset.y
 
-  -- Spawn the player ship offset from the station
   self.ship = factory.createShip(self.ecsWorld, self.physicsWorld, self.spawnX, self.spawnY)
   self.player = factory.createPlayer(self.ecsWorld, self.ship)
   self.ecsWorld:setResource("player", self.player)
 
+  -- Spawn asteroids from config
   local shipBody = self.ship.physics_body and self.ship.physics_body.body
   local avoidX, avoidY = shipBody:getPosition()
-  factory.spawnAsteroids(self.ecsWorld, self.physicsWorld, 70, self.sectorWidth, self.sectorHeight, avoidX, avoidY, 650,
-    self.worldRngs.asteroids)
+  factory.spawnAsteroids(
+    self.ecsWorld, self.physicsWorld,
+    SectorConfig.asteroids.count,
+    self.sectorWidth, self.sectorHeight,
+    avoidX, avoidY,
+    SectorConfig.asteroids.avoidRadius,
+    self.worldRngs.asteroids
+  )
 
-  -- Spawn 8 random enemy ships (random variants), avoiding the station safe zone
-  local stationX = self.sectorWidth / 2
-  local stationY = self.sectorHeight / 2
-  local enemySafeRadius = 800 -- Enemies can't spawn within this radius of the station
-
-  for i = 1, 8 do
+  -- Spawn enemies from config
+  local enemySafeRadius = SectorConfig.enemies.safeRadius
+  for i = 1, SectorConfig.enemies.count do
     local ex, ey
     repeat
       ex = love.math.random(0, self.sectorWidth)
       ey = love.math.random(0, self.sectorHeight)
-      local dx = ex - stationX
-      local dy = ey - stationY
+      local dx = ex - hubX
+      local dy = ey - hubY
       local distSq = dx * dx + dy * dy
     until distSq > enemySafeRadius * enemySafeRadius
 
