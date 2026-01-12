@@ -69,9 +69,7 @@ function ActiveQuestWidget.draw(ctx)
 
         -- Progress text (right-aligned, before description to calculate available width)
         local progText = string.format("%d/%d", quest.current or 0, quest.amount or 0)
-        if quest.type == "collect_resource" then
-            progText = progText .. " m3"
-        end
+        -- Removed m3 suffix
         local progTw = font:getWidth(progText)
         local progX = panelX + panelW - innerPad - progTw
 

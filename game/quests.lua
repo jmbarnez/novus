@@ -51,7 +51,7 @@ function Quests.generate(seed, count)
             -- Collect resource quest
             local itemId = collectibles[rng:random(1, #collectibles)]
             local itemDef = Items.get(itemId)
-            local amount = rng:random(3, 15) * 5
+            local amount = rng:random(15, 80)
             quest.type = "collect_resource"
             quest.target = itemId
             quest.amount = amount
