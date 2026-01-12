@@ -178,7 +178,7 @@ function Space:enter(_, worldSeed)
   factory.spawnAsteroids(self.ecsWorld, self.physicsWorld, 70, self.sectorWidth, self.sectorHeight, avoidX, avoidY, 650,
     self.worldRngs.asteroids)
 
-  -- Spawn 8 random enemy ships, avoiding the station safe zone
+  -- Spawn 8 random enemy ships (random variants), avoiding the station safe zone
   local stationX = self.sectorWidth / 2
   local stationY = self.sectorHeight / 2
   local enemySafeRadius = 800 -- Enemies can't spawn within this radius of the station
@@ -193,7 +193,7 @@ function Space:enter(_, worldSeed)
       local distSq = dx * dx + dy * dy
     until distSq > enemySafeRadius * enemySafeRadius
 
-    factory.createEnemyShip(self.ecsWorld, self.physicsWorld, ex, ey)
+    factory.createEnemyShip(self.ecsWorld, self.physicsWorld, ex, ey, { random = true })
   end
 
   -- Initialize sound system and start background music

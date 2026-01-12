@@ -10,13 +10,22 @@ local ALLOWED = {
 }
 local FALLBACK = "vulcan_cannon"
 
-function WeaponFactory.create(entity, weaponName)
+-- Optional overrides lets callers tweak a loaded weapon definition (damage, colors, etc.)
+function WeaponFactory.create(entity, weaponName, overrides)
     weaponName = ALLOWED[weaponName] or FALLBACK
 
     local status, def = pcall(require, WEAPON_PATH .. weaponName)
     if not status then
         print("Error loading weapon: " .. weaponName .. " -> " .. tostring(def))
         return nil
+    end
+
+    if overrides and type(overrides) == "table" then
+        -- Shallow copy then apply overrides
+        local patched = {}
+        for k, v in pairs(def) do patched[k] = v end
+        for k, v in pairs(overrides) do patched[k] = v end
+        def = patched
     end
 
     entity:give("weapon", def)

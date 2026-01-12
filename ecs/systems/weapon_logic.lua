@@ -170,6 +170,68 @@ local function spawnMissile(world, physicsWorld, ship, weapon, dirX, dirY)
   return true
 end
 
+local function spawnScatterOrb(world, physicsWorld, ship, weapon, targetX, targetY)
+  local shipBody = ship.physics_body.body
+  local sx, sy = shipBody:getPosition()
+
+  -- Calculate direction to target
+  local dx, dy = targetX - sx, targetY - sy
+  local dist = sqrt(dx * dx + dy * dy)
+  if dist < 1 then
+    dx, dy = 1, 0
+    dist = 1
+  end
+  local dirX, dirY = dx / dist, dy / dist
+
+  local muzzleX, muzzleY = WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
+
+  -- Create physics body for the orb
+  local body = love.physics.newBody(physicsWorld, muzzleX, muzzleY, "dynamic")
+  body:setBullet(true)
+  body:setLinearDamping(0)
+  body:setAngularDamping(0)
+  if body.setGravityScale then
+    body:setGravityScale(0)
+  end
+
+  local shape = love.physics.newCircleShape(weapon.orbSize or 6)
+  local fixture = love.physics.newFixture(body, shape, 0.1)
+  fixture:setSensor(true)
+  fixture:setCategory(4)
+
+  local ownerCat = 2
+  if ship.physics_body and ship.physics_body.fixture then
+    ownerCat = ship.physics_body.fixture:getCategory()
+  end
+  fixture:setMask(4, ownerCat)
+
+  -- Set velocity toward target
+  local speed = weapon.orbSpeed or 600
+  body:setLinearVelocity(dirX * speed, dirY * speed)
+
+  -- TTL = time to reach target + small buffer
+  local ttl = (dist / speed) + 0.05
+
+  -- Config for the scatter explosion behavior
+  local expireConfig = {
+    damage = weapon.damage,
+    projectileSpeed = weapon.projectileSpeed or 700,
+    projectileTtl = weapon.projectileTtl or 0.6,
+    projectileColor = weapon.projectileColor,
+    projectileSize = weapon.projectileSize or 4,
+    scatterCount = weapon.scatterCount or { 6, 10 },
+    miningEfficiency = weapon.miningEfficiency,
+  }
+
+  local orb = world:newEntity()
+      :give("physics_body", body, shape, fixture)
+      :give("renderable", "projectile", weapon.orbColor or { 0.4, 1.0, 0.2, 1 })
+      :give("projectile", weapon.damage, ttl, ship, weapon.miningEfficiency, "scatter", expireConfig)
+
+  fixture:setUserData(orb)
+  return true
+end
+
 local function spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
   -- Beams are instant hitscan or continuous areas.
   -- For "Void Ray" style, we might want a persistent entity attached to ship?
@@ -424,6 +486,9 @@ function WeaponLogic.fireWeapon(world, physicsWorld, ship, weapon, targetX, targ
   elseif weapon.type == "beam" then
     -- Fallback if no dt provided (shouldn't happen if updated correctly)
     return spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
+  elseif weapon.type == "scatter" then
+    -- Scatter orb travels to target position then explodes
+    return spawnScatterOrb(world, physicsWorld, ship, weapon, targetX, targetY)
   else
     -- Projectile (handle count/spread)
     local count = weapon.count or 1

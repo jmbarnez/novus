@@ -102,13 +102,17 @@ local function drawPlayerShip(ctx, e, shape)
 end
 
 local function drawEnemyShip(e, shape)
+  local colors = e.renderable and e.renderable.color or {}
+  local primary = colors.primary or colors[1] and colors or { 0.8, 0.2, 0.2, 1 }
+  local accent = colors.accent or primary
+
   -- Base hull
-  local r, g, b, a = Utils.applyFlashToColor(e, 0.18, 0.08, 0.10, 1)
+  local r, g, b, a = Utils.applyFlashToColor(e, primary[1] or 0.8, primary[2] or 0.2, primary[3] or 0.2, primary[4] or 1)
   love.graphics.setColor(r, g, b, a)
   love.graphics.polygon("fill", shape:getPoints())
 
-  -- Hull highlight
-  local hr, hg, hb, ha = Utils.applyFlashToColor(e, 0.28, 0.12, 0.14, 1)
+  -- Hull highlight (accent)
+  local hr, hg, hb, ha = Utils.applyFlashToColor(e, accent[1] or 0.28, accent[2] or 0.12, accent[3] or 0.14, accent[4] or 1)
   love.graphics.setColor(hr, hg, hb, ha)
   love.graphics.polygon("fill",
     10, 0,
@@ -134,8 +138,8 @@ local function drawEnemyShip(e, shape)
   love.graphics.line(-5, 7, -10, 4)
   love.graphics.line(-5, -7, -10, -4)
 
-  -- Engines (positioned within shape bounds)
-  love.graphics.setColor(0.8, 0.2, 0.1, 0.85)
+  -- Engines (accent glow)
+  love.graphics.setColor(accent[1] or 0.8, accent[2] or 0.2, accent[3] or 0.1, (accent[4] or 1) * 0.85)
   love.graphics.circle("fill", -9, 5, 2)
   love.graphics.circle("fill", -9, -5, 2)
   love.graphics.setColor(0, 0, 0, 0.8)
@@ -143,7 +147,7 @@ local function drawEnemyShip(e, shape)
   love.graphics.circle("line", -9, -5, 2)
 
   -- Cockpit
-  love.graphics.setColor(0.6, 0.1, 0.1, 0.7)
+  love.graphics.setColor(accent[1] or 0.6, accent[2] or 0.1, accent[3] or 0.1, (accent[4] or 1) * 0.7)
   love.graphics.circle("fill", 3, 0, 2.2)
   love.graphics.setColor(0, 0, 0, 0.7)
   love.graphics.circle("line", 3, 0, 2.2)
