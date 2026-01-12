@@ -6,6 +6,7 @@ local Inventory = require("game.inventory")
 local Items = require("game.items")
 local FloatingText = require("ecs.util.floating_text")
 local PickupFactory = require("game.factory.pickup")
+local RewardOrbFactory = require("game.factory.reward_orb")
 
 local PickupSystem = Concord.system({
   ships = { "ship", "cargo", "cargo_hold", "physics_body" },
@@ -194,12 +195,52 @@ local function tryCollect(ship, pickup)
   return true
 end
 
+local function tryCollectRewardOrb(ship, orb)
+  if not ship or not orb or not orb:has("reward_orb") then
+    return false
+  end
+
+  local world = ship:getWorld()
+  local player = world and world:getResource("player")
+  if not player then
+    return false
+  end
+
+  local reward = orb.reward_orb
+  local amount = reward.amount or 0
+  if amount <= 0 then
+    return false
+  end
+
+  if reward.kind == "credits" then
+    if not player:has("credits") then
+      return false
+    end
+    player.credits.balance = player.credits.balance + amount
+  elseif reward.kind == "xp" then
+    if not player:has("player_progress") then
+      return false
+    end
+    player.player_progress.xp = player.player_progress.xp + amount
+  else
+    return false
+  end
+
+  Physics.destroyPhysics(orb)
+  orb:destroy()
+  return true
+end
+
 function PickupSystem:onAttemptCollect(ship, pickup)
   if not EntityUtil.isAlive(ship) or not EntityUtil.isAlive(pickup) then
     return
   end
 
-  tryCollect(ship, pickup)
+  if pickup:has("reward_orb") then
+    tryCollectRewardOrb(ship, pickup)
+  else
+    tryCollect(ship, pickup)
+  end
 end
 
 function PickupSystem:onContact(a, b, contact)
@@ -238,30 +279,26 @@ function PickupSystem:onShipDestroyed(ship, x, y)
   local player = world:getResource("player")
   if not player then return end
 
-  -- Grant credits
+  local physicsWorld = world and world:getResource("physics")
+  if not physicsWorld then return end
+
   local creditReward = 50
-  if player:has("credits") then
-    player.credits.balance = player.credits.balance + creditReward
-    FloatingText.spawn(world, x, y - 20, "+" .. creditReward .. " Credits", {
-      kind = "credits",
-      color = { 1.0, 0.85, 0.2, 1.0 },
-      riseSpeed = 45,
-      duration = 1.0,
-      scale = 1.0,
-    })
+  local xpReward = 25
+
+  local function jitter()
+    return MathUtil.randRange(-55, 55), MathUtil.randRange(-55, 55)
   end
 
-  -- Grant XP
-  local xpReward = 25
+  -- Spawn credit orb
+  if player:has("credits") then
+    local vx, vy = jitter()
+    RewardOrbFactory.spawn(world, physicsWorld, "credits", creditReward, x, y, vx, vy)
+  end
+
+  -- Spawn XP orb (yellow)
   if player:has("player_progress") then
-    player.player_progress.xp = player.player_progress.xp + xpReward
-    FloatingText.spawn(world, x, y - 35, "+" .. xpReward .. " XP", {
-      kind = "xp",
-      color = { 0.6, 0.9, 1.0, 1.0 },
-      riseSpeed = 40,
-      duration = 1.0,
-      scale = 0.9,
-    })
+    local vx, vy = jitter()
+    RewardOrbFactory.spawn(world, physicsWorld, "xp", xpReward, x, y, vx, vy)
   end
 end
 

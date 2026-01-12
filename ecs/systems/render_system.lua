@@ -5,6 +5,7 @@ local ShipDraw = require("ecs.systems.draw.ship_draw")
 local AsteroidDraw = require("ecs.systems.draw.asteroid_draw")
 local ProjectileDraw = require("ecs.systems.draw.projectile_draw")
 local PickupDraw = require("ecs.systems.draw.pickup_draw")
+local RewardOrbDraw = require("ecs.systems.draw.reward_orb_draw")
 local ShatterDraw = require("ecs.systems.draw.shatter_draw")
 local MapUiDraw = require("ecs.systems.draw.map_ui_draw")
 local ExplosionDraw = require("ecs.systems.draw.explosion_draw")
@@ -120,6 +121,8 @@ function RenderSystem:drawWorld()
       ProjectileDraw.draw(ctx, e, body, x, y)
     elseif e.renderable.kind == "pickup" then
       PickupDraw.draw(ctx, e, body, x, y)
+    elseif e.renderable.kind == "reward_orb" then
+      RewardOrbDraw.draw(ctx, e, body, x, y)
     elseif e.renderable.kind == "shatter" and e:has("shatter") then
       ShatterDraw.draw(e, body, x, y)
     elseif e.renderable.kind == "space_station" then
