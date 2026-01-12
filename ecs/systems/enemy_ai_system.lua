@@ -60,9 +60,16 @@ function EnemyAISystem:fixedUpdate(dt)
         local ex, ey = body:getPosition()
         local eAngle = body:getAngle()
 
-        -- Predict where the player will be
+        -- Remember where this enemy spawned so we can wander around it
+        brain._homeX = brain._homeX or ex
+        brain._homeY = brain._homeY or ey
+
+        -- Predict where the player will be (movement target)
         local predX = playerState.x + playerState.vx * brain.predictionTime
         local predY = playerState.y + playerState.vy * brain.predictionTime
+
+        -- Separate aim jitter so it only affects weapon gating, not steering
+        local firePredX, firePredY = predX, predY
         local jitterRadius = brain.aimJitterRadius or 0
         if jitterRadius > 0 then
             brain._aimJitterTimer = (brain._aimJitterTimer or 0) - dt
@@ -73,8 +80,8 @@ function EnemyAISystem:fixedUpdate(dt)
                 brain._aimJitterDY = math.sin(angle) * radius
                 brain._aimJitterTimer = brain.aimJitterHold or 0.35
             end
-            predX = predX + brain._aimJitterDX
-            predY = predY + brain._aimJitterDY
+            firePredX = firePredX + brain._aimJitterDX
+            firePredY = firePredY + brain._aimJitterDY
         end
 
         local dx = predX - ex
@@ -84,6 +91,7 @@ function EnemyAISystem:fixedUpdate(dt)
         -- Determine desired angle to face target
         local desiredAngle = atan2(dy, dx)
         local angleDiff = normalizeAngle(desiredAngle - eAngle)
+        local turnThreshold = brain.turnThreshold or math.rad(10)
 
         -- Decide behavior state
         -- Only react within detectionRange (>= engageRange).
@@ -103,23 +111,43 @@ function EnemyAISystem:fixedUpdate(dt)
         local brake = 0
 
         if brain.state == "idle" then
-            -- Do nothing, maybe brake slowly if passing by
-            e.ship_input.thrust = 0
-            e.ship_input.turn = 0
+            -- Loiter around spawn point
+            local wr = brain.wanderRadius or 0
+            local wanderMin = brain.wanderIntervalMin or 1.5
+            local wanderMax = brain.wanderIntervalMax or wanderMin
+            brain._wanderTimer = (brain._wanderTimer or 0) - dt
+            if not brain._wanderTargetX or brain._wanderTimer <= 0 then
+                local angle = love.math.random() * math.pi * 2
+                local radius = math.sqrt(love.math.random()) * wr
+                brain._wanderTargetX = brain._homeX + math.cos(angle) * radius
+                brain._wanderTargetY = brain._homeY + math.sin(angle) * radius
+                brain._wanderTimer = love.math.random(wanderMin, wanderMax)
+            end
 
-            -- Optional: slow down if drifting
-            local vx, vy = body:getLinearVelocity()
-            if (vx * vx + vy * vy) > 10 then
-                brake = 0.5
+            local wdx = (brain._wanderTargetX or ex) - ex
+            local wdy = (brain._wanderTargetY or ey) - ey
+            local wdist = math.sqrt(wdx * wdx + wdy * wdy)
+
+            if wdist < 8 then
+                -- Pick a new spot soon when we arrive
+                brain._wanderTimer = 0
+                brake = 0.3
+            else
+                local wDesired = atan2(wdy, wdx)
+                local wAngleDiff = normalizeAngle(wDesired - eAngle)
+                if math.abs(wAngleDiff) > turnThreshold * 0.5 then
+                    turn = clamp(wAngleDiff * 2, -1, 1)
+                end
+                thrust = brain.wanderThrust or 0.25
             end
         elseif brain.state == "chase" then
             -- Turn towards player and thrust
-            if math.abs(angleDiff) > 0.05 then
-                turn = clamp(angleDiff * 3, -1, 1)
+            if math.abs(angleDiff) > turnThreshold then
+                turn = clamp(angleDiff * 2.5, -1, 1)
             end
 
             -- Only thrust if facing roughly towards target
-            if math.abs(angleDiff) < 0.5 then
+            if math.abs(angleDiff) < math.max(turnThreshold * 3, 0.5) then
                 thrust = 1.0
             end
 
@@ -127,7 +155,7 @@ function EnemyAISystem:fixedUpdate(dt)
             -- ship_control handles max speed, so full thrust is okay.
         elseif brain.state == "engage" then
             -- In range: face player but stop moving closer (or maintain distance)
-            if math.abs(angleDiff) > 0.05 then
+            if math.abs(angleDiff) > turnThreshold then
                 turn = clamp(angleDiff * 2, -1, 1)
             end
 
@@ -147,7 +175,9 @@ function EnemyAISystem:fixedUpdate(dt)
                 weapon.timer = math.max(0, (weapon.timer or 0) - dt)
 
                 -- Fire if roughly facing target
-                if math.abs(angleDiff) < weapon.coneHalfAngle then
+                local fireAngle = atan2(firePredY - ey, firePredX - ex)
+                local fireAngleDiff = normalizeAngle(fireAngle - eAngle)
+                if math.abs(fireAngleDiff) < weapon.coneHalfAngle then
                     WeaponLogic.fireAtTarget(self.world, physicsWorld, e, weapon, playerState.ship, dt)
                 else
                     if weapon.type == "beam" then WeaponLogic.stopBeam(weapon) end

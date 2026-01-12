@@ -15,6 +15,11 @@ Concord.component("ai_brain", function(c, opts)
     -- Aim inaccuracy: small positional jitter to predicted target to keep enemies imperfect
     c.aimJitterRadius = opts.aimJitterRadius or 60        -- max offset in pixels
     c.aimJitterHold = opts.aimJitterHold or 0.35          -- seconds before refreshing jitter
+    -- Wandering/loitering when idle
+    c.wanderRadius = opts.wanderRadius or 220
+    c.wanderThrust = opts.wanderThrust or 0.25
+    c.wanderIntervalMin = opts.wanderIntervalMin or 1.5
+    c.wanderIntervalMax = opts.wanderIntervalMax or 3.5
 end)
 
 return true

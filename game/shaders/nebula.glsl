@@ -98,12 +98,11 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
   float edgeNoise = fbm(p * 1.10 + vec2(seed * 0.37, seed * 0.53));
   float r = length(p - center) + (edgeNoise - 0.5) * 0.28;
 
-  // Single smooth fade with a wide falloff to avoid visible banding.
-  float mask = 1.0 - smoothstep(0.40, 1.30, r);
-  mask = pow(clamp(mask, 0.0, 1.0), 1.05);
+  // Ultra-smooth fade: very wide range so the transition is nearly invisible.
+  float mask = 1.0 - smoothstep(0.1, 2.5, r);
 
   float fade = smoothstep(0.0, 1.0, mask);
-  float edgeFactor = smoothstep(0.60, 1.05, r);
+  float edgeFactor = smoothstep(1.2, 2.2, r);
   density *= mask;
   density = mix(density, fade, edgeFactor);  // near the edge, bias strongly to a single ramp
   density = mix(density, fade, 0.50);        // global smoothing toward a flat fade

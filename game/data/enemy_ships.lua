@@ -32,20 +32,17 @@ EnemyShipDefs.list = {
             },
         },
 
-        renderable = { color = { 0.9, 0.25, 0.25, 1.0 }, accent = { 0.3, 0.9, 0.35, 1.0 } }, -- red/green
-        engineTrail = {
-            offsetX = -12,
-            offsetY = 0,
-            color = { 0.25, 0.95, 0.35, 0.95 },
-        },
+        color = { 0.3, 0.85, 0.35, 1.0 }, -- green hull
+        accentColor = { 0.2, 0.6, 0.25, 1.0 }, -- darker green accent
+        engineTrailColor = { 0.25, 0.95, 0.35, 0.95 },
 
         -- Ship handling
-        thrustForce = 28,
+        thrustForce = 24,
         strafeForce = 16,
         rcsPower = 140,
         stabilization = 1.05,
         brakeDamping = 0.55,
-        maxLinearSpeed = 220,
+        maxLinearSpeed = 175,
 
         -- Survivability
         hull = 50,

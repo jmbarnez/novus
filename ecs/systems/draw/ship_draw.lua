@@ -112,7 +112,8 @@ local function drawEnemyShip(e, shape)
   love.graphics.polygon("fill", shape:getPoints())
 
   -- Hull highlight (accent)
-  local hr, hg, hb, ha = Utils.applyFlashToColor(e, accent[1] or 0.28, accent[2] or 0.12, accent[3] or 0.14, accent[4] or 1)
+  local hr, hg, hb, ha = Utils.applyFlashToColor(e, accent[1] or 0.28, accent[2] or 0.12, accent[3] or 0.14,
+    accent[4] or 1)
   love.graphics.setColor(hr, hg, hb, ha)
   love.graphics.polygon("fill",
     10, 0,
@@ -233,47 +234,68 @@ local function drawHealthBar(ctx, e, angle)
   if not e:has("hull") then return end
 
   local hull = e.hull
-  if hull.current >= hull.max then return end -- Only show if damaged? Or always?
-  -- User said "like asteroids", asteroids show when < max.
-  -- But for enemies, seeing full health bar is also useful info?
-  -- Let's stick to "always visible" for enemies if requested, or "if damaged".
-  -- Asteroid logic: `current < max`.
-  -- For enemies, usually you want to see them to know they are enemies?
-  -- But they are already red.
-  -- Let's stick to "if damaged" to reduce clutter?
-  -- User prompt: "render health bars above their heads like we have for asteroids".
-  -- I will assume "if damaged" logic from asteroids first. Run with that.
-  -- Actually, enemies in games often show bars on hover or damaged.
-  -- I'll remove the `current < max` check to make them always visible for now,
-  -- checking if that feels too cluttered?
-  -- Let's stick to the asteroid logic exactly as requested: "like we have for asteroids".
-  -- Asteroid logic line 94: `e.health.current < e.health.max`
-
-  -- WAIT: If I shoot an enemy it should show up. If I don't, it might be hidden.
-  -- That's fine.
-
-  if hull.current >= hull.max then return end
-
   local ratio = hull.current / hull.max
   ratio = math.max(0, math.min(1, ratio))
 
-  -- Ship radius is roughly 12.
+  -- Get level from enemy component
+  local level = 1
+  if e:has("enemy") and e.enemy.level then
+    level = e.enemy.level
+  end
+
+  -- Dimensions
   local r = 14
   local barW = 24
-  local barH = 4
-  local barX = -barW / 2
-  local barY = -(r + 10)
+  local barH = 6
+  local levelBoxW = 10
+  local levelBoxH = barH * 2
+  local gap = 2 -- Gap between level box and health bar
+
+  -- Total width of level box + gap + health bar
+  local totalW = levelBoxW + gap + barW
+  -- Center everything above the ship
+  local startX = -totalW / 2
+  local barY = -(r + 12)
 
   love.graphics.push()
   love.graphics.rotate(-angle) -- Keep horizontal
 
-  -- Background
-  love.graphics.setColor(0, 0, 0, 1)
-  love.graphics.rectangle("line", barX, barY, barW, barH)
+  -- Level box Y position (vertically centered with health bar)
+  local levelBoxY = barY - (levelBoxH - barH) / 2
 
-  -- Fill (Red)
+  -- Level box background (solid red)
+  love.graphics.setColor(0.9, 0.2, 0.2, 1)
+  love.graphics.rectangle("fill", startX, levelBoxY, levelBoxW, levelBoxH)
+
+  -- Level box outline (black)
+  love.graphics.setColor(0, 0, 0, 1)
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", startX, levelBoxY, levelBoxW, levelBoxH)
+
+  -- Level text (black, centered)
+  love.graphics.setColor(0, 0, 0, 1)
+  local font = love.graphics.getFont()
+  local levelStr = tostring(level)
+  local textW = font:getWidth(levelStr)
+  local textH = font:getHeight()
+  local textX = startX + (levelBoxW - textW) / 2
+  local textY = levelBoxY + (levelBoxH - textH) / 2
+  love.graphics.print(levelStr, textX, textY)
+
+  -- Health bar position (after level box + gap)
+  local healthBarX = startX + levelBoxW + gap
+
+  -- Health bar background
+  love.graphics.setColor(0.15, 0.15, 0.15, 0.9)
+  love.graphics.rectangle("fill", healthBarX, barY, barW, barH)
+
+  -- Health bar outline
+  love.graphics.setColor(0, 0, 0, 1)
+  love.graphics.rectangle("line", healthBarX, barY, barW, barH)
+
+  -- Health bar fill (Red)
   love.graphics.setColor(1.0, 0.2, 0.2, 0.9)
-  love.graphics.rectangle("fill", barX + 1, barY + 1, (barW - 2) * ratio, barH - 2)
+  love.graphics.rectangle("fill", healthBarX + 1, barY + 1, (barW - 2) * ratio, barH - 2)
 
   love.graphics.pop()
 end
