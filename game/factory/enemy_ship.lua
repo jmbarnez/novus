@@ -70,6 +70,7 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
         :give("enemy", {
             faction = val("faction", "hostile"),
             level = val("level", 1),
+            lootTable = def.lootTable,
         })
         :give("ai_brain", {
             engageRange = val("engageRange", 650),
