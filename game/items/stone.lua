@@ -2,8 +2,7 @@ return {
   id = "stone",
   name = "Stone",
   color = { 0.70, 0.70, 0.70, 0.95 },
-  unitVolume = 1,
-  maxStackVolume = 100,
+  maxStack = 100,
   icon = {
     kind = "poly",
     points = {

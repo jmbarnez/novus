@@ -3,7 +3,7 @@ local Items = require("game.items")
 local Inventory = {}
 
 local function isEmpty(slot)
-  return not slot or not slot.id or (slot.volume or 0) <= 0
+  return not slot or not slot.id or (slot.count or 0) <= 0
 end
 
 function Inventory.isEmpty(slot)
@@ -12,24 +12,19 @@ end
 
 function Inventory.clear(slot)
   slot.id = nil
-  slot.volume = 0
+  slot.count = 0
 end
 
 function Inventory.clone(slot)
   if isEmpty(slot) then
-    return { id = nil, volume = 0 }
+    return { id = nil, count = 0 }
   end
-  return { id = slot.id, volume = slot.volume }
+  return { id = slot.id, count = slot.count }
 end
 
-function Inventory.maxStackVolume(id)
+function Inventory.maxStack(id)
   local def = Items.get(id)
-  return (def and def.maxStackVolume) or 100
-end
-
-function Inventory.unitVolume(id)
-  local def = Items.get(id)
-  return (def and def.unitVolume) or 1
+  return (def and def.maxStack) or 999
 end
 
 function Inventory.mergeInto(dst, src)
@@ -39,7 +34,7 @@ function Inventory.mergeInto(dst, src)
 
   if isEmpty(dst) then
     dst.id = src.id
-    dst.volume = src.volume
+    dst.count = src.count
     Inventory.clear(src)
     return true
   end
@@ -48,16 +43,16 @@ function Inventory.mergeInto(dst, src)
     return false
   end
 
-  local maxStack = Inventory.maxStackVolume(dst.id)
-  if dst.volume >= maxStack then
+  local maxStack = Inventory.maxStack(dst.id)
+  if dst.count >= maxStack then
     return false
   end
 
-  local room = maxStack - dst.volume
-  local take = math.min(room, src.volume)
-  dst.volume = dst.volume + take
-  src.volume = src.volume - take
-  if src.volume <= 0 then
+  local room = maxStack - dst.count
+  local take = math.min(room, src.count)
+  dst.count = dst.count + take
+  src.count = src.count - take
+  if src.count <= 0 then
     Inventory.clear(src)
   end
 
@@ -65,36 +60,37 @@ function Inventory.mergeInto(dst, src)
 end
 
 function Inventory.swap(a, b)
-  local aId, aVol = a.id, a.volume
-  a.id, a.volume = b.id, b.volume
-  b.id, b.volume = aId, aVol
+  local aId, aCount = a.id, a.count
+  a.id, a.count = b.id, b.count
+  b.id, b.count = aId, aCount
 end
 
-function Inventory.totalVolume(slots)
-  local v = 0
+function Inventory.totalCount(slots)
+  local c = 0
   for i = 1, #slots do
     local s = slots[i]
-    if s and s.id and (s.volume or 0) > 0 then
-      v = v + s.volume
+    if s and s.id and (s.count or 0) > 0 then
+      c = c + s.count
     end
   end
-  return v
+  return c
 end
 
-function Inventory.addToSlots(slots, id, volume)
-  local remaining = volume or 0
+function Inventory.addToSlots(slots, id, count)
+  local remaining = count or 0
   if not id or remaining <= 0 then
     return 0
   end
 
-  local maxStack = Inventory.maxStackVolume(id)
+  local maxStack = Inventory.maxStack(id)
 
+  -- First pass: fill existing stacks
   for i = 1, #slots do
     local s = slots[i]
-    if s and s.id == id and (s.volume or 0) > 0 and s.volume < maxStack then
-      local room = maxStack - s.volume
+    if s and s.id == id and (s.count or 0) > 0 and s.count < maxStack then
+      local room = maxStack - s.count
       local take = math.min(room, remaining)
-      s.volume = s.volume + take
+      s.count = s.count + take
       remaining = remaining - take
       if remaining <= 0 then
         return 0
@@ -102,12 +98,13 @@ function Inventory.addToSlots(slots, id, volume)
     end
   end
 
+  -- Second pass: use empty slots
   for i = 1, #slots do
     local s = slots[i]
     if s and Inventory.isEmpty(s) then
       local take = math.min(maxStack, remaining)
       s.id = id
-      s.volume = take
+      s.count = take
       remaining = remaining - take
       if remaining <= 0 then
         return 0

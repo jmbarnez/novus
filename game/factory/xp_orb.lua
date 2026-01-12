@@ -5,9 +5,9 @@ local function orbColor()
 end
 
 local function computeSize(amount)
-  local base = 4.0
-  local scaled = base + math.sqrt(math.max(amount or 0, 0)) * 0.5
-  return math.min(math.max(scaled, 4.0), 9.0) -- clamp to avoid huge orbs
+  local base = 2.0
+  local scaled = base + math.sqrt(math.max(amount or 0, 0)) * 0.3
+  return math.min(math.max(scaled, 2.0), 5.0) -- smaller orbs with subtle scaling
 end
 
 --- Spawn an XP orb in the world

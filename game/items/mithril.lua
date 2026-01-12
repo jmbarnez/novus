@@ -2,8 +2,7 @@ return {
   id = "mithril",
   name = "Mithril",
   color = { 0.18, 0.24, 0.40, 0.95 },
-  unitVolume = 1,
-  maxStackVolume = 100,
+  maxStack = 100,
   icon = {
     kind = "poly",
     points = {

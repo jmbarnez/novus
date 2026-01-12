@@ -8,11 +8,11 @@ local Items = require("game.items")
 ---@param id string Item ID
 ---@param x number World X position
 ---@param y number World Y position
----@param volume number Item volume
+---@param count number Item count
 ---@param velocityX number|nil Optional initial X velocity
 ---@param velocityY number|nil Optional initial Y velocity
 ---@return table|nil The created entity, or nil on failure
-function M.spawn(world, physicsWorld, id, x, y, volume, velocityX, velocityY)
+function M.spawn(world, physicsWorld, id, x, y, count, velocityX, velocityY)
     if not world or not physicsWorld then
         return nil
     end
@@ -37,7 +37,7 @@ function M.spawn(world, physicsWorld, id, x, y, volume, velocityX, velocityY)
     local e = world:newEntity()
         :give("physics_body", body, shape, fixture)
         :give("renderable", "pickup", color)
-        :give("pickup", id, volume)
+        :give("pickup", id, count)
 
     fixture:setUserData(e)
     return e

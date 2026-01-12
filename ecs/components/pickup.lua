@@ -1,8 +1,8 @@
 local Concord = require("lib.concord")
 
-Concord.component("pickup", function(c, id, volume)
+Concord.component("pickup", function(c, id, count)
   c.id = id
-  c.volume = volume or 1
+  c.count = count or 1
 end)
 
 return true

@@ -206,17 +206,15 @@ local function makeRefineryWindow()
             return
         end
 
-        local inputDef = Items.get(recipe.inputId)
-        local inputUnitVolume = (inputDef and inputDef.unitVolume) or 1
-        local oreVolumeToRemove = requiredOre * inputUnitVolume
+        local requiredOre = quantity * recipe.ratio
 
-        local oreToRemove = oreVolumeToRemove
+        local oreToRemove = requiredOre
         for _, slot in ipairs(ship.cargo_hold.slots) do
-            if slot.id == recipe.inputId and slot.volume and slot.volume > 0 then
-                local take = math.min(slot.volume, oreToRemove)
-                slot.volume = slot.volume - take
+            if slot.id == recipe.inputId and slot.count and slot.count > 0 then
+                local take = math.min(slot.count, oreToRemove)
+                slot.count = slot.count - take
                 oreToRemove = oreToRemove - take
-                if slot.volume <= 0 then
+                if slot.count <= 0 then
                     Inventory.clear(slot)
                 end
                 if oreToRemove <= 0 then break end
@@ -224,9 +222,8 @@ local function makeRefineryWindow()
         end
 
         player.credits.balance = player.credits.balance - fee
-        ship.cargo.used = Inventory.totalVolume(ship.cargo_hold.slots)
 
-        local success, msg = RefineryQueue.startJob(station, recipe, quantity, oreVolumeToRemove, fee)
+        local success, msg = RefineryQueue.startJob(station, recipe, quantity, requiredOre, fee)
         showNotification(success and "Smelting started!" or msg, success)
     end
 

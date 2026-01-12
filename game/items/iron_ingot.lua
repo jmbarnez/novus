@@ -2,8 +2,7 @@ return {
     id = "iron_ingot",
     name = "Iron Ingot",
     color = { 0.72, 0.72, 0.76, 0.95 },
-    unitVolume = 1,
-    maxStackVolume = 100,
+    maxStack = 100,
     icon = {
         kind = "poly",
         points = {

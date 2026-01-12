@@ -11,8 +11,8 @@ local CargoDraw = require("game.hud.widgets.cargo_panel.draw")
 
 local pointInRect = Rect.pointInRect
 
-local function spawnPickup(ctx, id, volume, worldX, worldY)
-  if not ctx or not ctx.world or not id or not volume or volume <= 0 then
+local function spawnPickup(ctx, id, count, worldX, worldY)
+  if not ctx or not ctx.world or not id or not count or count <= 0 then
     return false
   end
 
@@ -21,7 +21,7 @@ local function spawnPickup(ctx, id, volume, worldX, worldY)
     return false
   end
 
-  local e = PickupFactory.spawn(ctx.world, physicsWorld, id, worldX or 0, worldY or 0, volume)
+  local e = PickupFactory.spawn(ctx.world, physicsWorld, id, worldX or 0, worldY or 0, count)
   return e ~= nil
 end
 
@@ -109,11 +109,11 @@ local function makeCargoPanel()
     self.frame:draw(ctx, b, { title = cp.title or "CARGO", titlePad = b.pad, owner = self })
 
     local mx, my = love.mouse.getPosition()
-    local hoverIdx = (not mapOpen and ctx.hoverWidget == self) and CargoView.pickSlot(self.slotRects, mx, my, self.open) or nil
+    local hoverIdx = (not mapOpen and ctx.hoverWidget == self) and CargoView.pickSlot(self.slotRects, mx, my, self.open) or
+    nil
 
     CargoDraw.drawSlots(b, self.slotRects, hold, hoverIdx, self.dragFrom)
     CargoDraw.drawDragItem(self.drag, b.slot or 44)
-    CargoDraw.drawFooterBar(ctx, b, cargo.used or 0, cargo.capacity or 0)
 
     love.graphics.setColor(1, 1, 1, 1)
   end
@@ -170,12 +170,12 @@ local function makeCargoPanel()
       return true
     end
 
-    if self.drag and self.drag.id and (self.drag.volume or 0) > 0 then
+    if self.drag and self.drag.id and (self.drag.count or 0) > 0 then
       return true
     end
 
     local slot = hold.slots[idx]
-    if not slot or not slot.id or (slot.volume or 0) <= 0 then
+    if not slot or not slot.id or (slot.count or 0) <= 0 then
       return true
     end
 
@@ -201,7 +201,7 @@ local function makeCargoPanel()
       return true
     end
 
-    if not self.drag or not self.drag.id or (self.drag.volume or 0) <= 0 then
+    if not self.drag or not self.drag.id or (self.drag.count or 0) <= 0 then
       return false
     end
 
@@ -237,9 +237,8 @@ local function makeCargoPanel()
         end
       end
 
-      if spawnPickup(ctx, origin.id, origin.volume, dropX, dropY) then
+      if spawnPickup(ctx, origin.id, origin.count, dropX, dropY) then
         Inventory.clear(origin)
-        ship.cargo.used = Inventory.totalVolume(hold.slots)
       end
 
       self.drag = nil
@@ -265,17 +264,15 @@ local function makeCargoPanel()
 
     if Inventory.isEmpty(dst) then
       dst.id = origin.id
-      dst.volume = origin.volume
+      dst.count = origin.count
       Inventory.clear(origin)
       self.drag = nil
       self.dragFrom = nil
-      ship.cargo.used = Inventory.totalVolume(hold.slots)
       return true
     end
 
     if dst.id == origin.id then
       Inventory.mergeInto(dst, origin)
-      ship.cargo.used = Inventory.totalVolume(hold.slots)
       self.drag = nil
       self.dragFrom = nil
       return true
@@ -284,7 +281,6 @@ local function makeCargoPanel()
     Inventory.swap(origin, dst)
     self.drag = nil
     self.dragFrom = nil
-    ship.cargo.used = Inventory.totalVolume(hold.slots)
     return true
   end
 

@@ -60,21 +60,18 @@ function Refinery.getRecipes()
     return result
 end
 
--- Get how much ore the player has
+-- Get how much ore the player has (count-based)
 function Refinery.getPlayerOreCount(ship, oreId)
     if not ship or not ship.cargo_hold then return 0 end
 
-    local itemDef = Items.get(oreId)
-    local unitVolume = (itemDef and itemDef.unitVolume) or 1
     local total = 0
-
     for _, slot in ipairs(ship.cargo_hold.slots) do
-        if slot.id == oreId and slot.volume then
-            total = total + slot.volume
+        if slot.id == oreId and slot.count then
+            total = total + slot.count
         end
     end
 
-    return math.floor(total / unitVolume)
+    return total
 end
 
 -- Process ore into ingots
@@ -99,20 +96,17 @@ function Refinery.processOre(player, ship, recipeInputId, quantity)
     end
 
     local hold = ship.cargo_hold
-    local cargo = ship.cargo
-    if not hold or not cargo then
+    if not hold then
         return false, "No cargo hold"
     end
 
-    -- Calculate required ore
+    -- Calculate required ore (count-based)
     local inputDef = Items.get(recipe.inputId)
-    local inputUnitVolume = (inputDef and inputDef.unitVolume) or 1
-    local requiredOreUnits = quantity * recipe.ratio
-    local requiredOreVolume = requiredOreUnits * inputUnitVolume
+    local requiredOreCount = quantity * recipe.ratio
 
     -- Check if player has enough ore
     local oreCount = Refinery.getPlayerOreCount(ship, recipe.inputId)
-    if oreCount < requiredOreUnits then
+    if oreCount < requiredOreCount then
         return false, "Not enough " .. (inputDef and inputDef.name or recipe.inputId)
     end
 
@@ -122,35 +116,23 @@ function Refinery.processOre(player, ship, recipeInputId, quantity)
         return false, "Not enough credits (need " .. totalFee .. ")"
     end
 
-    -- Calculate output volume
-    local outputDef = Items.get(recipe.outputId)
-    local outputUnitVolume = (outputDef and outputDef.unitVolume) or 1
-    local outputVolume = quantity * outputUnitVolume
-
-    -- Check cargo space (output replaces input, so net change matters)
-    local netVolumeChange = outputVolume - requiredOreVolume
-    if netVolumeChange > 0 and cargo.used + netVolumeChange > cargo.capacity then
-        return false, "Not enough cargo space"
-    end
-
     -- Remove ore from cargo
-    local oreToRemove = requiredOreVolume
+    local oreToRemove = requiredOreCount
     for _, slot in ipairs(hold.slots) do
-        if slot.id == recipe.inputId and slot.volume and slot.volume > 0 then
-            local take = math.min(slot.volume, oreToRemove)
-            slot.volume = slot.volume - take
+        if slot.id == recipe.inputId and slot.count and slot.count > 0 then
+            local take = math.min(slot.count, oreToRemove)
+            slot.count = slot.count - take
             oreToRemove = oreToRemove - take
-            if slot.volume <= 0 then
+            if slot.count <= 0 then
                 Inventory.clear(slot)
             end
             if oreToRemove <= 0 then break end
         end
     end
 
-    -- Add ingots to cargo
-    local remaining = Inventory.addToSlots(hold.slots, recipe.outputId, outputVolume)
+    -- Add ingots to cargo (grid naturally limits)
+    local remaining = Inventory.addToSlots(hold.slots, recipe.outputId, quantity)
     if remaining > 0 then
-        -- This shouldn't happen if we checked space correctly, but handle it
         return false, "Could not add ingots to cargo"
     end
 
@@ -159,9 +141,7 @@ function Refinery.processOre(player, ship, recipeInputId, quantity)
         player.credits.balance = player.credits.balance - totalFee
     end
 
-    -- Update cargo used
-    cargo.used = Inventory.totalVolume(hold.slots)
-
+    local outputDef = Items.get(recipe.outputId)
     local outputName = outputDef and outputDef.name or recipe.outputId
     return true, "Processed " .. quantity .. " " .. outputName
 end

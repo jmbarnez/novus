@@ -10,10 +10,10 @@ local RefineryQueue = {}
 --- @param station Entity with refinery_queue component
 --- @param recipe Recipe table from Refinery.getRecipes()
 --- @param quantity Number of output ingots to produce
---- @param oreVolume Volume of ore consumed (already removed from cargo)
+--- @param oreCount Count of ore consumed (already removed from cargo)
 --- @param fee Credits paid (already deducted)
 --- @return boolean success, string message
-function RefineryQueue.startJob(station, recipe, quantity, oreVolume, fee)
+function RefineryQueue.startJob(station, recipe, quantity, oreCount, fee)
     if not station or not station.refinery_queue then
         return false, "Invalid station"
     end
@@ -42,7 +42,7 @@ function RefineryQueue.startJob(station, recipe, quantity, oreVolume, fee)
         quantity = quantity,
         progress = 0,
         totalTime = totalTime,
-        oreConsumed = oreVolume,
+        oreConsumed = oreCount,
         feePaid = fee,
         outputName = recipe.outputName or recipe.outputId,
     }
@@ -115,29 +115,15 @@ function RefineryQueue.collectJob(station, jobIndex, ship)
         return false, "Job not complete"
     end
 
-    if not ship or not ship.cargo_hold or not ship.cargo then
+    if not ship or not ship.cargo_hold then
         return false, "No cargo hold"
     end
 
-    -- Calculate output volume
-    local outputDef = Items.get(job.recipeOutputId)
-    local outputUnitVolume = (outputDef and outputDef.unitVolume) or 1
-    local outputVolume = job.quantity * outputUnitVolume
-
-    -- Check cargo space
-    local freeSpace = ship.cargo.capacity - ship.cargo.used
-    if outputVolume > freeSpace then
-        return false, "Not enough cargo space"
-    end
-
-    -- Add ingots to cargo
-    local remaining = Inventory.addToSlots(ship.cargo_hold.slots, job.recipeOutputId, outputVolume)
+    -- Add ingots to cargo (grid naturally limits)
+    local remaining = Inventory.addToSlots(ship.cargo_hold.slots, job.recipeOutputId, job.quantity)
     if remaining > 0 then
         return false, "Could not add ingots to cargo"
     end
-
-    -- Update cargo used
-    ship.cargo.used = Inventory.totalVolume(ship.cargo_hold.slots)
 
     RefineryQueue.recordWorkOrderProgress(station, job)
 

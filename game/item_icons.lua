@@ -40,53 +40,81 @@ local function drawFromParams(id, cx, cy, size, opts)
     return false
   end
 
-  if icon.kind ~= "poly" or not icon.points then
-    return false
-  end
-
   local r, g, b, a = resolveColor(id, opts)
-  local pts = buildScaledPoints(cx, cy, size, icon.points)
+  local alpha = a or 1
 
-  local shadowDef = icon.shadow
-  if shadowDef then
-    local dx = (shadowDef.dx or 0) * size
-    local dy = (shadowDef.dy or 0) * size
-    local shadow = {}
-    applyRelativeOffset(shadow, pts, dx, dy)
-    love.graphics.setColor(0, 0, 0, (shadowDef.a or 0.0) * (a or 1))
-    love.graphics.polygon("fill", shadow)
+  -- Parse common transformation
+  local function getTransform(def)
+    return {
+      radius = (def.radius or 0.5) * size,
+      width = (def.width or 1),
+      startAngle = def.startAngle or 0,
+      endAngle = def.endAngle or (math.pi * 2),
+    }
   end
 
-  love.graphics.setColor(r, g, b, (icon.fillA or 1) * (a or 1))
-  love.graphics.polygon("fill", pts)
+  -- Shape primitives
+  local function drawShape(def, mode, col)
+    if not def then return end
 
-  local outline = icon.outline
-  if outline then
-    if outline.width then
-      love.graphics.setLineWidth(outline.width)
+    local c = col or { 0, 0, 0, 0 }
+    love.graphics.setColor(c[1], c[2], c[3], (c[4] or 1) * alpha * (def.a or 1))
+
+    if def.width then love.graphics.setLineWidth(def.width) end
+
+    if def.kind == "poly" and def.points then
+      local pts = buildScaledPoints(cx, cy, size, def.points)
+      love.graphics.polygon(mode, pts)
+    elseif def.kind == "circle" then
+      local t = getTransform(def)
+      love.graphics.circle(mode, cx, cy, t.radius)
+    elseif def.kind == "arc" then
+      local t = getTransform(def)
+      love.graphics.arc(mode, def.arcType or "open", cx, cy, t.radius, t.startAngle, t.endAngle)
     end
-    love.graphics.setColor(0, 0, 0, (outline.a or 1) * (a or 1))
-    love.graphics.polygon("line", pts)
   end
 
-  local highlight = icon.highlight
-  if highlight and highlight.kind == "polyline" and highlight.points then
-    if highlight.width then
-      love.graphics.setLineWidth(highlight.width)
-    end
-    local hpts = buildScaledPoints(cx, cy, size, highlight.points)
-    love.graphics.setColor(1, 1, 1, (highlight.a or 0.0) * (a or 1))
-    love.graphics.line(hpts)
+  -- 1. Shadow
+  if icon.shadow then
+    local s = icon.shadow
+    local dx = (s.dx or 0) * size
+    local dy = (s.dy or 0) * size
+
+    love.graphics.push()
+    love.graphics.translate(dx, dy)
+    drawShape(icon, "fill", { 0, 0, 0, s.a or 0.5 })
+    love.graphics.pop()
   end
 
-  local detail = icon.detail
-  if detail and detail.kind == "line" and detail.points then
-    if detail.width then
-      love.graphics.setLineWidth(detail.width)
+  -- 2. Base Fill
+  drawShape(icon, "fill", { r, g, b, icon.fillA or 1 })
+
+  -- 3. Features (Inner Ring, Detail, Highlight)
+  -- Support generic list of layers or named legacy fields
+  local layers = icon.layers or { icon.innerRing, icon.detail, icon.highlight }
+
+  for _, layer in ipairs(layers) do
+    if layer then
+      -- Determine mode: arcs and lines are "line", others "fill" unless specified
+      local mode = layer.mode or (layer.kind == "arc" or layer.kind == "line" or layer.kind == "polyline") and "line" or
+      "fill"
+
+      -- For highlights/details, default to white/black if no color specified, but allow overrides
+      local lc = layer.color or (mode == "line" and { 1, 1, 1, layer.a } or { 0, 0, 0, layer.a })
+      -- If layer has explicit color, use it. If it's a "highlight", default white. If "detail", default black/dark.
+      if not layer.color then
+        if layer == icon.highlight then lc = { 1, 1, 1, 1 } end
+        if layer == icon.detail then lc = { 0, 0, 0, 1 } end
+        if layer == icon.innerRing then lc = { 0, 0, 0, 1 } end
+      end
+
+      drawShape(layer, mode, lc)
     end
-    local dpts = buildScaledPoints(cx, cy, size, detail.points)
-    love.graphics.setColor(0, 0, 0, (detail.a or 0.0) * (a or 1))
-    love.graphics.line(dpts)
+  end
+
+  -- 4. Outline (Global)
+  if icon.outline then
+    drawShape(icon, "line", { 0, 0, 0, icon.outline.a or 1 })
   end
 
   return true

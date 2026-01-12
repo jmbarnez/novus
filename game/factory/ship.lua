@@ -73,9 +73,7 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
 
   fixture:setUserData(e)
 
-  if e.cargo and e.cargo_hold and e.cargo_hold.slots then
-    e.cargo.used = Inventory.totalVolume(e.cargo_hold.slots)
-  end
+  -- Cargo initialization (count-based system doesn't need used tracking)
 
   return e
 end

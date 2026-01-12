@@ -2,8 +2,7 @@ return {
     id = "mithril_ingot",
     name = "Mithril Ingot",
     color = { 0.28, 0.38, 0.60, 0.95 },
-    unitVolume = 1,
-    maxStackVolume = 100,
+    maxStack = 100,
     icon = {
         kind = "poly",
         points = {

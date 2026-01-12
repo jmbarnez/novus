@@ -32,6 +32,7 @@ function Shop.getPrice(itemId)
         mithril = 50,
         iron_ingot = 35,
         mithril_ingot = 120,
+        credits = 1, -- Credits can be traded 1:1
     }
     return prices[itemId] or 10
 end
@@ -55,45 +56,26 @@ function Shop.buyItem(player, ship, itemId, quantity)
         return false, "Not enough credits"
     end
 
-    -- Check cargo space
-    local cargo = ship.cargo
+    -- Check cargo hold exists
     local hold = ship.cargo_hold
-    if not cargo or not hold then
+    if not hold then
         return false, "No cargo hold"
     end
 
-    local itemDef = Items.get(itemId)
-    local unitVolume = (itemDef and itemDef.unitVolume) or 1
-    local totalVolume = quantity * unitVolume
+    -- Try to add to inventory (grid naturally limits capacity)
+    local remaining = Inventory.addToSlots(hold.slots, itemId, quantity)
+    local added = quantity - remaining
 
-    if cargo.used + totalVolume > cargo.capacity then
-        return false, "Not enough cargo space"
-    end
-
-    -- Find slot to add to
-    local added = false
-    for i, slot in ipairs(hold.slots) do
-        if slot.id == itemId then
-            slot.volume = slot.volume + totalVolume
-            added = true
-            break
-        elseif Inventory.isEmpty(slot) then
-            slot.id = itemId
-            slot.volume = totalVolume
-            added = true
-            break
-        end
-    end
-
-    if not added then
+    if added <= 0 then
         return false, "No available slot"
     end
 
-    -- Deduct credits
-    player.credits.balance = player.credits.balance - price
-    cargo.used = Inventory.totalVolume(hold.slots)
+    -- Deduct credits (prorated if partial purchase)
+    local actualPrice = Shop.getPrice(itemId) * added
+    player.credits.balance = player.credits.balance - actualPrice
 
-    return true, "Purchased " .. quantity .. " " .. (itemDef and itemDef.name or itemId)
+    local itemDef = Items.get(itemId)
+    return true, "Purchased " .. added .. " " .. (itemDef and itemDef.name or itemId)
 end
 
 -- Attempt to sell an item
@@ -104,19 +86,14 @@ function Shop.sellItem(player, ship, itemId, quantity)
     end
 
     local hold = ship.cargo_hold
-    local cargo = ship.cargo
-    if not hold or not cargo then
+    if not hold then
         return false, "No cargo hold"
     end
-
-    local itemDef = Items.get(itemId)
-    local unitVolume = (itemDef and itemDef.unitVolume) or 1
-    local totalVolume = quantity * unitVolume
 
     -- Find slot with this item
     local slot = nil
     for i, s in ipairs(hold.slots) do
-        if s.id == itemId and s.volume >= totalVolume then
+        if s.id == itemId and (s.count or 0) >= quantity then
             slot = s
             break
         end
@@ -127,8 +104,8 @@ function Shop.sellItem(player, ship, itemId, quantity)
     end
 
     -- Remove from cargo
-    slot.volume = slot.volume - totalVolume
-    if slot.volume <= 0 then
+    slot.count = slot.count - quantity
+    if slot.count <= 0 then
         Inventory.clear(slot)
     end
 
@@ -138,8 +115,7 @@ function Shop.sellItem(player, ship, itemId, quantity)
         player.credits.balance = player.credits.balance + sellPrice
     end
 
-    cargo.used = Inventory.totalVolume(hold.slots)
-
+    local itemDef = Items.get(itemId)
     return true, "Sold " .. quantity .. " " .. (itemDef and itemDef.name or itemId)
 end
 

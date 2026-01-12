@@ -132,55 +132,17 @@ local function tryCollect(ship, pickup)
   end
 
   local p = pickup.pickup
-  if not p.id or not p.volume or p.volume <= 0 then
+  if not p.id or not p.count or p.count <= 0 then
     return false
   end
 
-  -- Credits: bypass cargo, add directly to player wallet
-  if p.id == "credits" then
-    local world = ship:getWorld()
-    local player = world and world:getResource("player")
-    if not player or not player:has("credits") then
-      return false
-    end
-
-    player.credits.balance = player.credits.balance + p.volume
-
-    local body = pickup.physics_body and pickup.physics_body.body
-    if world and body then
-      local x, y = body:getPosition()
-      FloatingText.spawn(world, x, y - 8, "+" .. p.volume .. " cr", {
-        kind = "credits",
-        color = { 1.0, 0.92, 0.25, 1.0 },
-        riseSpeed = 50,
-        duration = 0.85,
-        scale = 0.95,
-      })
-    end
-
-    Physics.destroyPhysics(pickup)
-    pickup:destroy()
-    return true
-  end
-
-  if not (ship:has("cargo") and ship:has("cargo_hold")) then
+  if not ship:has("cargo_hold") then
     return false
   end
 
-  local cap = ship.cargo.capacity or 0
-  local used = ship.cargo.used or 0
-  local free = cap - used
-  if free <= 0 then
-    return false
-  end
-
-  local tryVol = math.min(p.volume, free)
-  if tryVol <= 0 then
-    return false
-  end
-
-  local remaining = Inventory.addToSlots(ship.cargo_hold.slots, p.id, tryVol)
-  local collected = tryVol - remaining
+  -- Try to add to inventory slots (grid naturally limits capacity)
+  local remaining = Inventory.addToSlots(ship.cargo_hold.slots, p.id, p.count)
+  local collected = p.count - remaining
   if collected <= 0 then
     return false
   end
@@ -192,16 +154,17 @@ local function tryCollect(ship, pickup)
       local x, y = body:getPosition()
       local def = Items.get(p.id)
       local name = (def and def.name) or p.id
+      local itemColor = def and def.color or { 1, 1, 1, 0.95 }
       FloatingText.spawnStacked(world, x, y - 10, "pickup:" .. tostring(p.id), collected, {
         kind = "pickup",
         stackLabel = name,
         prefix = "+",
-        amountSuffix = "m3",
         stackRadius = 80,
         stackWindow = 0.4,
         riseSpeed = 55,
         duration = 0.75,
         scale = 0.95,
+        color = { itemColor[1], itemColor[2], itemColor[3], 1.0 },
       })
 
       -- Emit collection event for quests
@@ -209,14 +172,12 @@ local function tryCollect(ship, pickup)
     end
   end
 
-  ship.cargo.used = Inventory.totalVolume(ship.cargo_hold.slots)
-
-  local leftoverPickupVol = p.volume - collected
-  if leftoverPickupVol <= 0 then
+  local leftover = p.count - collected
+  if leftover <= 0 then
     Physics.destroyPhysics(pickup)
     pickup:destroy()
   else
-    p.volume = leftoverPickupVol
+    p.count = leftover
   end
 
   return true

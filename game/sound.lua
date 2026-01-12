@@ -42,7 +42,6 @@ function Sound.load()
     Sound._loadSfx("laser_fire", "assets/sounds/sfx/auto_cannon_shot.wav")
     Sound._loadSfx("impact", "assets/sounds/sfx/impact.wav")
     Sound._loadSfx("explosion_small", "assets/sounds/sfx/explosion_small.wav")
-    Sound._generateAsteroidBreak()
     Sound._loadSfx("pickup", "assets/sounds/sfx/item_pickup.ogg")
     Sound._loadSfx("quest_complete", "assets/sounds/sfx/quest_complete.wav")
     Sound._loadSfx("dock", "assets/sounds/sfx/dock.wav")
@@ -63,41 +62,6 @@ function Sound._loadSfx(id, path)
     else
         print("[Sound] Warning: Failed to load audio: " .. path)
     end
-end
-
--- Procedural SFX: asteroid break apart
-function Sound._generateAsteroidBreak()
-    if not (love.audio and love.sound) then return end
-
-    local sampleRate = 44100
-    local duration = 0.65
-    local samples = math.floor(sampleRate * duration)
-    local soundData = love.sound.newSoundData(samples, sampleRate, 16, 1)
-
-    for i = 0, samples - 1 do
-        local t = i / sampleRate
-
-        -- Low thump with slight wobble
-        local wobble = math.sin(2 * math.pi * 2 * t) * 0.5
-        local low = math.sin((2 * math.pi * 55 * t) + wobble) * math.exp(-4 * t) * 0.6
-
-        -- Crackle and debris noise
-        local noise = (love.math.random() * 2 - 1) * math.exp(-6 * t) * 0.35
-
-        -- Sparkly shatter overtones
-        local shatterCenter = 0.08
-        local shatter = math.sin(2 * math.pi * 420 * t + 6 * math.sin(2 * math.pi * 12 * t))
-        shatter = shatter * math.exp(-18 * (t - shatterCenter) * (t - shatterCenter)) * 0.25
-
-        local sample = low + noise + shatter
-        sample = math.max(-1, math.min(1, sample))
-
-        soundData:setSample(i, sample)
-    end
-
-    local source = love.audio.newSource(soundData, "static")
-    source:setVolume(Sound._getSfxVolume())
-    Sound.sources.sfx["asteroid_break"] = source
 end
 
 --------------------------------------------------------------------------------
