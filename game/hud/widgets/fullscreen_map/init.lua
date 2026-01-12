@@ -7,6 +7,7 @@ local WindowFrame = require("game.hud.window_frame")
 local Rect = require("util.rect")
 local MapView = require("game.hud.widgets.fullscreen_map.view")
 local MapDraw = require("game.hud.widgets.fullscreen_map.draw")
+local Settings = require("game.settings")
 
 local pointInRect = Rect.pointInRect
 
@@ -130,7 +131,7 @@ local function makeFullscreenMap()
       return false
     end
 
-    if key == "m" then
+    if Settings.isKeyForControl("toggle_map", key) then
       setOpen(ctx, not mapUi.open)
       return true
     end
@@ -144,12 +145,12 @@ local function makeFullscreenMap()
       return true
     end
 
-    if key == "=" or key == "kp+" then
+    if Settings.isKeyForControl("zoom_in", key) then
       mapUi.zoom = MathUtil.clamp((mapUi.zoom or 1.0) * 1.12, 1.0, 20.0)
       return true
     end
 
-    if key == "-" or key == "kp-" then
+    if Settings.isKeyForControl("zoom_out", key) then
       mapUi.zoom = MathUtil.clamp((mapUi.zoom or 1.0) / 1.12, 1.0, 20.0)
       return true
     end

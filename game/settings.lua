@@ -24,8 +24,11 @@ local DEFAULTS = {
         aim = { "mouse:2" },
         target_lock = { "key:lctrl", "key:rctrl" },
         interact = { "key:e" },
-        prev_weapon = { "key:g" },
-        next_weapon = { "key:h" },
+        toggle_map = { "key:m" },
+        toggle_skills = { "key:k" },
+        toggle_cargo = { "key:tab" },
+        zoom_in = { "key:=", "key:kp+" },
+        zoom_out = { "key:-", "key:kp-" },
     }
 }
 
@@ -147,6 +150,23 @@ function Settings.setControl(action, keys)
     if not Settings.data.controls then Settings.data.controls = {} end
     Settings.data.controls[action] = keys
     Settings.save()
+end
+
+-- Check if a pressed key matches a control action binding
+-- @param action string Control action name (e.g., "toggle_map")
+-- @param key string The pressed key (e.g., "m")
+-- @return boolean True if the key matches any binding for this action
+function Settings.isKeyForControl(action, key)
+    local bindings = Settings.getControl(action)
+    if not bindings then return false end
+
+    local keyBind = "key:" .. key
+    for _, bind in ipairs(bindings) do
+        if bind == keyBind then
+            return true
+        end
+    end
+    return false
 end
 
 -- Reset all settings to defaults

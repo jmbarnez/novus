@@ -10,6 +10,7 @@ local StationUI = require("game.hud.station_state")
 local ItemIcons = require("game.item_icons")
 local Inventory = require("game.inventory")
 local Items = require("game.items")
+local Settings = require("game.settings")
 
 local pointInRect = Rect.pointInRect
 
@@ -434,7 +435,8 @@ local function makeStationWindow()
         local stationUi = getStationUI(ctx)
 
         -- Open station window on E when near station
-        if key == "e" then
+        -- Open station window on interact key when near station
+        if Settings.isKeyForControl("interact", key) then
             if stationUi and stationUi.open then
                 setOpen(ctx, false)
                 return true

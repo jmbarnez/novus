@@ -2,6 +2,7 @@
 --- Routes input events to appropriate handlers
 local Gamestate = require("lib.hump.gamestate")
 local MathUtil = require("util.math")
+local Settings = require("game.settings")
 
 local SpaceInput = {}
 
@@ -54,11 +55,11 @@ function SpaceInput.keypressed(state, key, Pause, Space)
         return
     elseif key == "b" then
         state.showBackground = not state.showBackground
-    elseif key == "=" or key == "kp+" then
+    elseif Settings.isKeyForControl("zoom_in", key) then
         if state.camera then
             state.camera:zoomIn()
         end
-    elseif key == "-" or key == "kp-" then
+    elseif Settings.isKeyForControl("zoom_out", key) then
         if state.camera then
             state.camera:zoomOut()
         end

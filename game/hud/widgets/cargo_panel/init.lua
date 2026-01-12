@@ -8,6 +8,7 @@ local Rect = require("util.rect")
 local PickupFactory = require("game.factory.pickup")
 local CargoView = require("game.hud.widgets.cargo_panel.view")
 local CargoDraw = require("game.hud.widgets.cargo_panel.draw")
+local Settings = require("game.settings")
 
 local pointInRect = Rect.pointInRect
 
@@ -110,7 +111,7 @@ local function makeCargoPanel()
 
     local mx, my = love.mouse.getPosition()
     local hoverIdx = (not mapOpen and ctx.hoverWidget == self) and CargoView.pickSlot(self.slotRects, mx, my, self.open) or
-    nil
+        nil
 
     CargoDraw.drawSlots(b, self.slotRects, hold, hoverIdx, self.dragFrom)
     CargoDraw.drawDragItem(self.drag, b.slot or 44)
@@ -286,7 +287,7 @@ local function makeCargoPanel()
 
   -- Interface: keypressed ------------------------------------------------
   function self.keypressed(ctx, key)
-    if key == "tab" then
+    if Settings.isKeyForControl("toggle_cargo", key) then
       self.open = not self.open
       self.drag = nil
       self.dragFrom = nil

@@ -7,6 +7,7 @@ local RefineryUI = require("game.hud.refinery_state")
 local RefineryQueue = require("game.systems.refinery_queue")
 local Items = require("game.items")
 local Inventory = require("game.inventory")
+local Settings = require("game.settings")
 
 local Helpers = require("game.hud.widgets.refinery_window.helpers")
 local RecipePanel = require("game.hud.widgets.refinery_window.recipe_panel")
@@ -327,7 +328,8 @@ local function makeRefineryWindow()
     function self.keypressed(ctx, key)
         local refineryUi = getRefineryUI(ctx)
 
-        if key == "e" then
+        -- Open refinery window on interact key when near station
+        if Settings.isKeyForControl("interact", key) then
             if refineryUi and refineryUi.open then
                 setOpen(ctx, false)
                 return true

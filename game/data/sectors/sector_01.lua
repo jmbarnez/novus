@@ -32,8 +32,12 @@ return {
 
     -- Enemy spawn settings
     enemies = {
-        count = 8,
+        count = 5,
         safeRadius = 800, -- can't spawn within this radius of stations
         variants = "random",
+        -- Specific spawns for testing
+        specific = {
+            { id = "fly", count = 3 },
+        },
     },
 }

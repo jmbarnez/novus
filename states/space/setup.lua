@@ -113,7 +113,9 @@ function SpaceSetup.spawnSectorContents(state, sectorConfig)
 
     -- Spawn enemies
     local enemySafeRadius = sectorConfig.enemies.safeRadius
-    for i = 1, sectorConfig.enemies.count do
+
+    -- Helper to find a safe spawn position
+    local function getSafeEnemySpawn()
         local ex, ey
         repeat
             ex = love.math.random(0, state.sectorWidth)
@@ -122,7 +124,22 @@ function SpaceSetup.spawnSectorContents(state, sectorConfig)
             local dy = ey - hubY
             local distSq = dx * dx + dy * dy
         until distSq > enemySafeRadius * enemySafeRadius
+        return ex, ey
+    end
 
+    -- Spawn specific enemies if defined
+    if sectorConfig.enemies.specific then
+        for _, spec in ipairs(sectorConfig.enemies.specific) do
+            for _ = 1, spec.count do
+                local ex, ey = getSafeEnemySpawn()
+                factory.createEnemyShip(state.ecsWorld, state.physicsWorld, ex, ey, { id = spec.id })
+            end
+        end
+    end
+
+    -- Spawn random enemies
+    for _ = 1, sectorConfig.enemies.count do
+        local ex, ey = getSafeEnemySpawn()
         factory.createEnemyShip(state.ecsWorld, state.physicsWorld, ex, ey, { random = true })
     end
 

@@ -7,6 +7,23 @@ local pointInRect = Rect.pointInRect
 
 local Controls = {}
 
+-- Ordered list of all configurable controls with display labels
+local CONTROL_ORDER = {
+    { id = "thrust",        label = "Thrust" },
+    { id = "strafe_left",   label = "Strafe Left" },
+    { id = "strafe_right",  label = "Strafe Right" },
+    { id = "brake",         label = "Brake" },
+    { id = "fire",          label = "Fire" },
+    { id = "aim",           label = "Aim" },
+    { id = "target_lock",   label = "Target Lock" },
+    { id = "interact",      label = "Interact" },
+    { id = "toggle_map",    label = "Toggle Map" },
+    { id = "toggle_skills", label = "Toggle Skills" },
+    { id = "toggle_cargo",  label = "Toggle Cargo" },
+    { id = "zoom_in",       label = "Zoom In" },
+    { id = "zoom_out",      label = "Zoom Out" },
+}
+
 function Controls.new()
     local self = setmetatable({}, { __index = Controls })
     self.bounds = {}
@@ -19,24 +36,18 @@ function Controls:layout(x, y, w)
     local controls = Settings.get("controls")
     local rowH = 32
 
-    -- Sort actions for consistent order
-    local actions = {}
-    for k in pairs(controls) do
-        table.insert(actions, k)
-    end
-    table.sort(actions)
-
     self.bounds = { binds = {} }
     local cy = y
+    local count = 0
 
-    for _, action in ipairs(actions) do
-        local keys = controls[action]
-        local actionLabel = action:gsub("_", " "):gsub("^%l", string.upper)
+    for _, item in ipairs(CONTROL_ORDER) do
+        local action = item.id
+        local keys = controls[action] or {}
 
         -- Action label
         table.insert(self.bounds.binds, {
             type = "label",
-            text = actionLabel,
+            text = item.label,
             rect = { x = x, y = cy, w = 140, h = 24 }
         })
 
@@ -59,10 +70,11 @@ function Controls:layout(x, y, w)
         })
 
         cy = cy + rowH
+        count = count + 1
     end
 
     -- Return height consumed
-    return #actions * rowH
+    return count * rowH
 end
 
 function Controls:keypressed(key)

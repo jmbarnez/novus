@@ -87,6 +87,25 @@ function enemy_ship.createEnemyShip(ecsWorld, physicsWorld, x, y, opts)
         })
         :give("hull", val("hull", 50))
 
+    -- Add shield if defined
+    local shieldMax = val("shield", nil)
+    if shieldMax and shieldMax > 0 then
+        local shieldRegen = val("shieldRegen", 0)
+        local shieldRadius = val("shieldRadius", 20)
+
+        -- Create shield physics fixture
+        local shieldShape = love.physics.newCircleShape(shieldRadius)
+        local shieldFixture = love.physics.newFixture(body, shieldShape, 0.1)
+        shieldFixture:setRestitution(0.7)
+        shieldFixture:setFriction(0.1)
+        shieldFixture:setCategory(3) -- Same as enemy ship
+
+        e:give("shield", shieldMax, shieldRegen)
+        e.shield.fixture = shieldFixture
+        e.shield.radius = shieldRadius
+        shieldFixture:setUserData(e)
+    end
+
     -- Equip weapon (default to pulse laser if not specified)
     WeaponFactory.create(e, val("weapon", "pulse_laser"), val("weaponOverrides", nil))
 

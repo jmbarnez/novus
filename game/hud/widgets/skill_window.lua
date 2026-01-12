@@ -1,6 +1,7 @@
 local Theme = require("game.theme")
 local WindowFrame = require("game.hud.window_frame")
 local Rect = require("util.rect")
+local Settings = require("game.settings")
 
 local pointInRect = Rect.pointInRect
 
@@ -233,7 +234,7 @@ local function makeSkillWindow()
   end
 
   function self.keypressed(ctx, key)
-    if key == "k" then
+    if Settings.isKeyForControl("toggle_skills", key) then
       self.open = not self.open
       if self.open and ctx and ctx.hud then
         ctx.hud:bringToFront(self)
