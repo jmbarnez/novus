@@ -212,8 +212,8 @@ local function spawnScatterOrb(world, physicsWorld, ship, weapon, targetX, targe
   -- TTL = time to reach target + small buffer
   local ttl = (dist / speed) + 0.05
 
-  -- Config for the scatter explosion behavior
-  local expireConfig = {
+  -- Config for the scatter explosion behavior (shared between expire and impact)
+  local scatterConfig = {
     damage = weapon.damage,
     projectileSpeed = weapon.projectileSpeed or 700,
     projectileTtl = weapon.projectileTtl or 0.6,
@@ -223,10 +223,13 @@ local function spawnScatterOrb(world, physicsWorld, ship, weapon, targetX, targe
     miningEfficiency = weapon.miningEfficiency,
   }
 
+  -- On impact: scatter_away (spawns fragments in opposite direction of impact)
+  -- On expire (reaching target): scatter (spawns fragments in all directions)
   local orb = world:newEntity()
       :give("physics_body", body, shape, fixture)
       :give("renderable", "projectile", weapon.orbColor or { 0.4, 1.0, 0.2, 1 })
-      :give("projectile", weapon.damage, ttl, ship, weapon.miningEfficiency, "scatter", expireConfig)
+      :give("projectile", weapon.damage, ttl, ship, weapon.miningEfficiency, "scatter", scatterConfig, "scatter_away",
+        scatterConfig)
 
   fixture:setUserData(orb)
   return true

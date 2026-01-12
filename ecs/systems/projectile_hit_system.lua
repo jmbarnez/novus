@@ -3,6 +3,7 @@ local PhysicsCleanup = require("ecs.physics_cleanup")
 local EntityUtil = require("ecs.util.entity")
 local ImpactUtil = require("ecs.util.impact")
 local FloatingText = require("ecs.util.floating_text")
+local ProjectileSystem = require("ecs.systems.projectile_system")
 
 local ProjectileHitSystem = Concord.system()
 
@@ -161,6 +162,21 @@ local function tryHit(projectile, target, contact)
         duration = 0.55,
         scale = 1.0,
       })
+    end
+
+    -- Trigger on-impact behavior (e.g., scatter_away)
+    local proj = projectile.projectile
+    if proj.onImpactBehavior and world and physicsWorld then
+      -- Calculate impact angle from projectile velocity (direction it was traveling)
+      local projBody = projectile.physics_body.body
+      local vx, vy = projBody:getLinearVelocity()
+      local impactAngle = math.atan2(vy, vx) -- Direction projectile was moving
+
+      -- Merge onImpactConfig with impactAngle
+      local config = proj.onImpactConfig or {}
+      config.impactAngle = impactAngle
+
+      ProjectileSystem.triggerImpactBehavior(proj.onImpactBehavior, world, physicsWorld, x, y, proj, config)
     end
   end
 

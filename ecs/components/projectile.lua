@@ -3,13 +3,16 @@ local Concord = require("lib.concord")
 -- Projectile component with optional data-driven expiration behavior
 -- expireBehavior: string key for the behavior type (e.g. "scatter", "explode", "split")
 -- expireConfig: table with behavior-specific configuration
-Concord.component("projectile", function(c, damage, ttl, owner, miningEfficiency, expireBehavior, expireConfig)
-  c.damage = damage or 1
-  c.ttl = ttl or 1.0
-  c.owner = owner
-  c.miningEfficiency = miningEfficiency
-  c.expireBehavior = expireBehavior -- nil = default shatter effect
-  c.expireConfig = expireConfig     -- behavior-specific data
-end)
+Concord.component("projectile",
+  function(c, damage, ttl, owner, miningEfficiency, expireBehavior, expireConfig, onImpactBehavior, onImpactConfig)
+    c.damage = damage or 1
+    c.ttl = ttl or 1.0
+    c.owner = owner
+    c.miningEfficiency = miningEfficiency
+    c.expireBehavior = expireBehavior   -- nil = default shatter effect
+    c.expireConfig = expireConfig       -- behavior-specific data
+    c.onImpactBehavior = onImpactBehavior -- behavior triggered on impact (e.g. "scatter_away")
+    c.onImpactConfig = onImpactConfig   -- config for impact behavior
+  end)
 
 return true

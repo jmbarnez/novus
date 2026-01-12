@@ -123,6 +123,28 @@ ExpireBehaviors.explode = function(world, physicsWorld, x, y, projectile, config
   -- TODO: Query nearby entities and apply damage based on config.explosionRadius
 end
 
+-- "scatter_away": Scatter projectiles in a 180-degree arc opposite to the impact direction
+-- Requires config.impactAngle to be set at call time
+ExpireBehaviors.scatter_away = function(world, physicsWorld, x, y, projectile, config)
+  local countRange = config.scatterCount or { 6, 10 }
+  local minCount = countRange[1] or 6
+  local maxCount = countRange[2] or minCount
+  local count = random(minCount, maxCount)
+
+  -- impactAngle points FROM projectile TO target, so we scatter in the opposite half-circle
+  local impactAngle = config.impactAngle or 0
+  local awayAngle = impactAngle + pi -- Opposite direction
+
+  for i = 1, count do
+    -- Spread within a 180-degree arc (pi radians) centered on awayAngle
+    local spread = (random() - 0.5) * pi
+    local angle = awayAngle + spread
+    spawnFragment(world, physicsWorld, x, y, angle, config, projectile.owner)
+  end
+
+  spawnExpireEffect(world, physicsWorld, x, y, config.projectileColor)
+end
+
 --------------------------------------------------------------------------------
 -- System Update
 --------------------------------------------------------------------------------
@@ -164,6 +186,14 @@ end
 
 function ProjectileSystem.registerExpireBehavior(name, handler)
   ExpireBehaviors[name] = handler
+end
+
+-- Trigger an impact behavior (called from projectile_hit_system)
+function ProjectileSystem.triggerImpactBehavior(behaviorName, world, physicsWorld, x, y, proj, config)
+  local handler = ExpireBehaviors[behaviorName]
+  if handler then
+    handler(world, physicsWorld, x, y, proj, config)
+  end
 end
 
 return ProjectileSystem
