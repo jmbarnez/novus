@@ -13,20 +13,23 @@ return {
     description = "Slow-firing high-speed pulse bolt.",
     icon = {
         kind = "poly",
+        -- Laser bolt shape (pointed projectile)
         points = {
-            0.0, -0.55,
-            0.35, 0.0,
-            0.0, 0.55,
-            -0.35, 0.0,
+            0.55, 0.0,   -- tip
+            0.1, -0.2,   -- top edge
+            -0.5, -0.12, -- back top
+            -0.45, 0.0,  -- back center
+            -0.5, 0.12,  -- back bottom
+            0.1, 0.2,    -- bottom edge
         },
         shadow = { dx = 0.06, dy = 0.06, a = 0.4 },
         fillA = 0.95,
         outline = { a = 0.8, width = 1 },
         highlight = {
             kind = "polyline",
-            points = { -0.1, -0.2, 0.1, 0.0, -0.1, 0.2 },
-            a = 0.3,
-            width = 1,
+            points = { 0.4, 0.0, -0.2, 0.0 },
+            a = 0.4,
+            width = 2,
         },
     },
 }

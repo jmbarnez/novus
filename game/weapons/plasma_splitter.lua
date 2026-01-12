@@ -20,21 +20,37 @@ return {
     miningEfficiency = 1.2,
     description = "Fires an orb that explodes into plasma fragments at the target location.",
     icon = {
-        kind = "poly",
-        points = {
-            0.0, -0.55,
-            0.2, -0.2,
-            0.55, -0.18,
-            0.28, 0.1,
-            0.35, 0.5,
-            0.0, 0.28,
-            -0.35, 0.5,
-            -0.28, 0.1,
-            -0.55, -0.18,
-            -0.2, -0.2,
-        },
+        kind = "circle",
+        radius = 0.3,
         shadow = { dx = 0.06, dy = 0.06, a = 0.4 },
         fillA = 0.95,
         outline = { a = 0.8, width = 1 },
+        -- Explosion rays radiating outward
+        layers = {
+            {
+                kind = "polyline",
+                points = { 0.35, 0.0, 0.55, 0.0 },
+                a = 0.7,
+                width = 2,
+            },
+            {
+                kind = "polyline",
+                points = { 0.25, 0.25, 0.4, 0.4 },
+                a = 0.6,
+                width = 2,
+            },
+            {
+                kind = "polyline",
+                points = { 0.0, 0.35, 0.0, 0.55 },
+                a = 0.7,
+                width = 2,
+            },
+            {
+                kind = "polyline",
+                points = { -0.25, 0.25, -0.4, 0.4 },
+                a = 0.6,
+                width = 2,
+            },
+        },
     },
 }

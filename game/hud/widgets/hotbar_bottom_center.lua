@@ -136,6 +136,17 @@ local function makeHotbarBottomCenter()
         -- Draw each slot
         local font = love.graphics.getFont()
         local mx, my = love.mouse.getPosition()
+        local hoveredWeaponName = nil
+        local hoverSlotBounds = nil
+
+        -- Get cooldown info from ship weapon
+        local cooldownFrac = 0
+        if ship and ship:has("weapon") then
+            local weapon = ship.weapon
+            if weapon.cooldown and weapon.cooldown > 0 then
+                cooldownFrac = (weapon.timer or 0) / weapon.cooldown
+            end
+        end
 
         for i, sb in ipairs(self.slotBounds) do
             local isActive = (i == activeSlot)
@@ -166,6 +177,32 @@ local function makeHotbarBottomCenter()
             if weaponId then
                 local iconSize = SLOT_SIZE - 12
                 WeaponIcons.draw(weaponId, sb.x + 6, sb.y + 6, iconSize, iconSize, { alpha = isActive and 1 or 0.7 })
+
+                -- Track hovered weapon for tooltip
+                if isHover then
+                    local def = WeaponIcons.getWeaponDef(weaponId)
+                    if def then
+                        hoveredWeaponName = def.name or weaponId
+                        hoverSlotBounds = sb
+                    end
+                end
+            end
+
+            -- Cooldown bar at bottom of active slot
+            if isActive and cooldownFrac > 0 then
+                local barH = 4
+                local barY = sb.y + sb.h - barH - 2
+                local barX = sb.x + 2
+                local barW = sb.w - 4
+
+                -- Background
+                love.graphics.setColor(0, 0, 0, 0.5)
+                love.graphics.rectangle("fill", barX, barY, barW, barH, 2, 2)
+
+                -- Cooldown fill (shrinks as cooldown progresses)
+                local fillW = barW * cooldownFrac
+                love.graphics.setColor(colors.accent[1], colors.accent[2], colors.accent[3], 0.9)
+                love.graphics.rectangle("fill", barX, barY, fillW, barH, 2, 2)
             end
 
             -- Keybind number (in header area above slot)
@@ -179,6 +216,25 @@ local function makeHotbarBottomCenter()
             love.graphics.print(keyStr, keyX + 1, keyY + 1)
             love.graphics.setColor(1, 1, 1, 0.9)
             love.graphics.print(keyStr, keyX, keyY)
+        end
+
+        -- Draw tooltip for hovered weapon (after slots so it's on top)
+        if hoveredWeaponName and hoverSlotBounds then
+            local tooltipPad = 4
+            local tooltipW = font:getWidth(hoveredWeaponName) + tooltipPad * 2
+            local tooltipH = font:getHeight() + tooltipPad * 2
+            local tooltipX = hoverSlotBounds.x + (hoverSlotBounds.w - tooltipW) / 2
+            local tooltipY = hoverSlotBounds.y - tooltipH - 4
+
+            -- Tooltip background
+            love.graphics.setColor(0, 0, 0, 0.85)
+            love.graphics.rectangle("fill", tooltipX, tooltipY, tooltipW, tooltipH, 3, 3)
+            love.graphics.setColor(colors.panelBorder[1], colors.panelBorder[2], colors.panelBorder[3], 0.7)
+            love.graphics.rectangle("line", tooltipX, tooltipY, tooltipW, tooltipH, 3, 3)
+
+            -- Tooltip text
+            love.graphics.setColor(1, 1, 1, 0.95)
+            love.graphics.print(hoveredWeaponName, tooltipX + tooltipPad, tooltipY + tooltipPad)
         end
 
         love.graphics.setColor(1, 1, 1, 1)

@@ -49,6 +49,8 @@ local function drawFromDef(def, cx, cy, size, opts)
         alpha = alpha * (t[4] or 1)
     end
 
+    local halfSize = size * 0.5
+
     -- 1. Shadow
     if icon.shadow then
         local s = icon.shadow
@@ -57,22 +59,26 @@ local function drawFromDef(def, cx, cy, size, opts)
 
         love.graphics.push()
         love.graphics.translate(dx, dy)
+        love.graphics.setColor(0, 0, 0, (s.a or 0.5) * alpha)
         if icon.kind == "poly" and icon.points then
             local pts = buildScaledPoints(cx, cy, size, icon.points)
-            love.graphics.setColor(0, 0, 0, (s.a or 0.5) * alpha)
             love.graphics.polygon("fill", pts)
+        elseif icon.kind == "circle" and icon.radius then
+            love.graphics.circle("fill", cx, cy, icon.radius * halfSize)
         end
         love.graphics.pop()
     end
 
     -- 2. Base fill
+    love.graphics.setColor(r, g, b, (icon.fillA or 1) * alpha)
     if icon.kind == "poly" and icon.points then
         local pts = buildScaledPoints(cx, cy, size, icon.points)
-        love.graphics.setColor(r, g, b, (icon.fillA or 1) * alpha)
         love.graphics.polygon("fill", pts)
+    elseif icon.kind == "circle" and icon.radius then
+        love.graphics.circle("fill", cx, cy, icon.radius * halfSize)
     end
 
-    -- 3. Highlight
+    -- 3. Highlight (single)
     if icon.highlight then
         local h = icon.highlight
         if h.kind == "polyline" and h.points then
@@ -83,13 +89,27 @@ local function drawFromDef(def, cx, cy, size, opts)
         end
     end
 
+    -- 3b. Layers (multiple highlights/details)
+    if icon.layers then
+        for _, layer in ipairs(icon.layers) do
+            if layer.kind == "polyline" and layer.points then
+                local pts = buildScaledPoints(cx, cy, size, layer.points)
+                love.graphics.setColor(1, 1, 1, (layer.a or 0.3) * alpha)
+                love.graphics.setLineWidth(layer.width or 1)
+                love.graphics.line(pts)
+            end
+        end
+    end
+
     -- 4. Outline
     if icon.outline then
+        love.graphics.setColor(0, 0, 0, (icon.outline.a or 1) * alpha)
+        love.graphics.setLineWidth(icon.outline.width or 1)
         if icon.kind == "poly" and icon.points then
             local pts = buildScaledPoints(cx, cy, size, icon.points)
-            love.graphics.setColor(0, 0, 0, (icon.outline.a or 1) * alpha)
-            love.graphics.setLineWidth(icon.outline.width or 1)
             love.graphics.polygon("line", pts)
+        elseif icon.kind == "circle" and icon.radius then
+            love.graphics.circle("line", cx, cy, icon.radius * halfSize)
         end
     end
 
