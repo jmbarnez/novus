@@ -70,6 +70,7 @@ local function makeControlsBottomLeft()
   local self = {
     frame = WindowFrame.new(),
     bounds = nil,
+    visible = true, -- toggle state for 'C' key
   }
 
   local function recompute(ctx)
@@ -132,7 +133,7 @@ local function makeControlsBottomLeft()
       return false
     end
 
-    if getMapOpen(ctx) then
+    if getMapOpen(ctx) or not self.visible then
       return false
     end
 
@@ -145,7 +146,7 @@ local function makeControlsBottomLeft()
       return
     end
 
-    if getMapOpen(ctx) then
+    if getMapOpen(ctx) or not self.visible then
       return
     end
 
@@ -185,7 +186,7 @@ local function makeControlsBottomLeft()
   end
 
   function self.mousepressed(ctx, x, y, button)
-    if not ctx or getMapOpen(ctx) then
+    if not ctx or getMapOpen(ctx) or not self.visible then
       return false
     end
 
@@ -204,14 +205,14 @@ local function makeControlsBottomLeft()
   end
 
   function self.mousereleased(ctx, x, y, button)
-    if not ctx or getMapOpen(ctx) then
+    if not ctx or getMapOpen(ctx) or not self.visible then
       return false
     end
     return self.frame:mousereleased(ctx, x, y, button)
   end
 
   function self.mousemoved(ctx, x, y, dx, dy)
-    if not ctx or getMapOpen(ctx) then
+    if not ctx or getMapOpen(ctx) or not self.visible then
       return false
     end
 
@@ -226,6 +227,14 @@ local function makeControlsBottomLeft()
       return true
     end
 
+    return false
+  end
+
+  function self.keypressed(ctx, key)
+    if key == "c" then
+      self.visible = not self.visible
+      return true
+    end
     return false
   end
 

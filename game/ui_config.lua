@@ -4,6 +4,7 @@ local UIConfig = {
         extraTips = {
             "Ctrl+Click: Select Target",
             "M: Map",
+            "C: Controls",
             "Wheel: Zoom",
             "F11: Fullscreen",
             "Esc: Pause",
