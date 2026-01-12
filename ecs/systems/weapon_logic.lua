@@ -1,6 +1,9 @@
 local Concord = require("lib.concord")
 local Math = require("util.math")
 local Effects = require("ecs.util.effects")
+local ProjectileSpawner = require("ecs.systems.spawn.projectile_spawner")
+local MissileSpawner = require("ecs.systems.spawn.missile_spawner")
+local ScatterOrbSpawner = require("ecs.systems.spawn.scatter_orb_spawner")
 
 local clamp = Math.clamp
 local normalizeAngle = Math.normalizeAngle
@@ -58,9 +61,8 @@ function WeaponLogic.getClampedAimDir(shipBody, dx, dy, coneHalfAngle)
 end
 
 -- Turret mount offset from ship center (in ship-local coordinates)
--- Conceptually a bottom-mounted turret (invisible, beneath the 2D sprite)
 local TURRET_OFFSET_X = 12 -- Forward, near ship nose
-local TURRET_OFFSET_Y = 0  -- Centered (the turret is conceptually "under" the ship)
+local TURRET_OFFSET_Y = 0  -- Centered
 
 function WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
   local sx, sy = shipBody:getPosition()
@@ -75,156 +77,35 @@ function WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
 end
 
 --------------------------------------------------------------------------------
--- Weapon Types
+-- Spawner Wrappers (delegate to modules)
 --------------------------------------------------------------------------------
 
 local function spawnProjectile(world, physicsWorld, ship, weapon, dirX, dirY)
   local shipBody = ship.physics_body.body
   local muzzleX, muzzleY = WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
-
-  -- Create physics body
-  local body = love.physics.newBody(physicsWorld, muzzleX, muzzleY, "dynamic")
-  body:setBullet(true)
-  body:setLinearDamping(0)
-  body:setAngularDamping(0)
-  if body.setGravityScale then
-    body:setGravityScale(0)
-  end
-
-  -- Create shape and fixture
-  local shape = love.physics.newCircleShape(weapon.projectileSize or 3)
-  local fixture = love.physics.newFixture(body, shape, 0.1)
-  fixture:setSensor(true)
-  fixture:setCategory(4)
-
-  -- Mask collision with owner's category to avoid self-collision
-  local ownerCat = 2 -- Default to player category
-  if ship.physics_body and ship.physics_body.fixture then
-    ownerCat = ship.physics_body.fixture:getCategory()
-  end
-  fixture:setMask(4, ownerCat) -- Ignore projectiles (4) and owner category
-
-  -- Set velocity
-  local speed = weapon.projectileSpeed or 1200
-  body:setLinearVelocity(dirX * speed, dirY * speed)
-
-  -- Calculate time-to-live
-  local ttl = weapon.projectileTtl or 1.2
-
-  -- Create projectile entity
-  local miningEfficiency = weapon.miningEfficiency or 1.0
-  local projectile = world:newEntity()
-      :give("physics_body", body, shape, fixture)
-      :give("renderable", "projectile", weapon.projectileColor or { 0.00, 1.00, 1.00, 0.95 })
-      :give("projectile", weapon.damage, ttl, ship, miningEfficiency)
-
-  fixture:setUserData(projectile)
-  return true
+  return ProjectileSpawner.spawn(world, physicsWorld, muzzleX, muzzleY, dirX, dirY, weapon, ship)
 end
 
 local function spawnMissile(world, physicsWorld, ship, weapon, dirX, dirY)
   local shipBody = ship.physics_body.body
   local muzzleX, muzzleY = WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
-
-  -- Missiles launch slightly slower then accelerate
-  local launchSpeed = (weapon.missileSpeed or 600) * 0.5
-
-  -- Body
-  local body = love.physics.newBody(physicsWorld, muzzleX, muzzleY, "dynamic")
-  body:setLinearDamping(0.5) -- Some drag
-  body:setAngularDamping(2)  -- Stable turning
-
-  local shape = love.physics.newCircleShape(4)
-  local fixture = love.physics.newFixture(body, shape, 0.5)
-  fixture:setSensor(true) -- Contact only
-  fixture:setCategory(4)  -- Projectile category
-
-  local ownerCat = 2
-  if ship.physics_body and ship.physics_body.fixture then
-    ownerCat = ship.physics_body.fixture:getCategory()
-  end
-  fixture:setMask(4, ownerCat)
-
-  body:setLinearVelocity(dirX * launchSpeed, dirY * launchSpeed)
-  body:setAngle(atan2(dirY, dirX))
-
-  local missile = world:newEntity()
-      :give("physics_body", body, shape, fixture)
-      -- Uses projectile renderer; color pulled from weapon definition
-      :give("renderable", "projectile", weapon.projectileColor or { 1, 0.2, 0.2, 1 })
-      :give("projectile", weapon.damage, weapon.projectileTtl or 5, ship, weapon.miningEfficiency)
-      :give("missile", weapon.target, weapon.damage, weapon.missileSpeed, weapon.missileTurnRate, weapon.missileAccel,
-        weapon.projectileTtl)
-      :give("engine_trail", { 1, 0.5, 0, 0.8 }) -- Visual flair
-
-  fixture:setUserData(missile)
-  return true
+  return MissileSpawner.spawn(world, physicsWorld, muzzleX, muzzleY, dirX, dirY, weapon, ship)
 end
 
 local function spawnScatterOrb(world, physicsWorld, ship, weapon, targetX, targetY)
   local shipBody = ship.physics_body.body
   local sx, sy = shipBody:getPosition()
-
-  -- Calculate direction to target
   local dx, dy = targetX - sx, targetY - sy
   local dist = sqrt(dx * dx + dy * dy)
-  if dist < 1 then
-    dx, dy = 1, 0
-    dist = 1
-  end
+  if dist < 1 then dx, dy, dist = 1, 0, 1 end
   local dirX, dirY = dx / dist, dy / dist
-
   local muzzleX, muzzleY = WeaponLogic.getMuzzlePosition(shipBody, dirX, dirY)
-
-  -- Create physics body for the orb
-  local body = love.physics.newBody(physicsWorld, muzzleX, muzzleY, "dynamic")
-  body:setBullet(true)
-  body:setLinearDamping(0)
-  body:setAngularDamping(0)
-  if body.setGravityScale then
-    body:setGravityScale(0)
-  end
-
-  local shape = love.physics.newCircleShape(weapon.orbSize or 6)
-  local fixture = love.physics.newFixture(body, shape, 0.1)
-  fixture:setSensor(true)
-  fixture:setCategory(4)
-
-  local ownerCat = 2
-  if ship.physics_body and ship.physics_body.fixture then
-    ownerCat = ship.physics_body.fixture:getCategory()
-  end
-  fixture:setMask(4, ownerCat)
-
-  -- Set velocity toward target
-  local speed = weapon.orbSpeed or 600
-  body:setLinearVelocity(dirX * speed, dirY * speed)
-
-  -- TTL = time to reach target + small buffer
-  local ttl = (dist / speed) + 0.05
-
-  -- Config for the scatter explosion behavior (shared between expire and impact)
-  local scatterConfig = {
-    damage = weapon.damage,
-    projectileSpeed = weapon.projectileSpeed or 700,
-    projectileTtl = weapon.projectileTtl or 0.6,
-    projectileColor = weapon.projectileColor,
-    projectileSize = weapon.projectileSize or 4,
-    scatterCount = weapon.scatterCount or { 6, 10 },
-    miningEfficiency = weapon.miningEfficiency,
-  }
-
-  -- On impact: scatter_away (spawns fragments in opposite direction of impact)
-  -- On expire (reaching target): scatter (spawns fragments in all directions)
-  local orb = world:newEntity()
-      :give("physics_body", body, shape, fixture)
-      :give("renderable", "projectile", weapon.orbColor or { 0.4, 1.0, 0.2, 1 })
-      :give("projectile", weapon.damage, ttl, ship, weapon.miningEfficiency, "scatter", scatterConfig, "scatter_away",
-        scatterConfig)
-
-  fixture:setUserData(orb)
-  return true
+  return ScatterOrbSpawner.spawn(world, physicsWorld, muzzleX, muzzleY, targetX, targetY, weapon, ship)
 end
+
+--------------------------------------------------------------------------------
+-- Beam Weapon (kept inline due to raycast/damage integration)
+--------------------------------------------------------------------------------
 
 local function spawnBeam(world, physicsWorld, ship, weapon, dirX, dirY)
   -- Beams are instant hitscan or continuous areas.
