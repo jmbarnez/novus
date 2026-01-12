@@ -36,15 +36,15 @@ local function makeHotbarBottomCenter()
     local SLOT_GAP = 6
     local SLOT_COUNT = 5
     local PADDING = 8
+    local HEADER_H = 10 -- Space for keybind numbers
     local MARGIN_BOTTOM = 16
-    local KEYBIND_OFFSET_Y = -12
 
     local function recompute(ctx)
         local screenW = ctx and ctx.screenW or love.graphics.getWidth()
         local screenH = ctx and ctx.screenH or love.graphics.getHeight()
 
         local totalW = (SLOT_SIZE * SLOT_COUNT) + (SLOT_GAP * (SLOT_COUNT - 1)) + (PADDING * 2)
-        local totalH = SLOT_SIZE + (PADDING * 2)
+        local totalH = SLOT_SIZE + HEADER_H + (PADDING * 2)
 
         local x = (screenW - totalW) / 2
         local y = screenH - totalH - MARGIN_BOTTOM
@@ -56,11 +56,11 @@ local function makeHotbarBottomCenter()
             h = totalH,
         }
 
-        -- Compute individual slot bounds
+        -- Compute individual slot bounds (below header)
         self.slotBounds = {}
         for i = 1, SLOT_COUNT do
             local slotX = x + PADDING + (i - 1) * (SLOT_SIZE + SLOT_GAP)
-            local slotY = y + PADDING
+            local slotY = y + PADDING + HEADER_H
             self.slotBounds[i] = {
                 x = slotX,
                 y = slotY,
@@ -168,11 +168,12 @@ local function makeHotbarBottomCenter()
                 WeaponIcons.draw(weaponId, sb.x + 6, sb.y + 6, iconSize, iconSize, { alpha = isActive and 1 or 0.7 })
             end
 
-            -- Keybind number
+            -- Keybind number (in header area above slot)
             local keyStr = tostring(i)
             local keyW = font:getWidth(keyStr)
+            local keyH = font:getHeight()
             local keyX = sb.x + (sb.w - keyW) / 2
-            local keyY = sb.y + KEYBIND_OFFSET_Y
+            local keyY = sb.y - HEADER_H + (HEADER_H - keyH) / 2 -- Centered in header
 
             love.graphics.setColor(0, 0, 0, 0.6)
             love.graphics.print(keyStr, keyX + 1, keyY + 1)
