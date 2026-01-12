@@ -68,7 +68,10 @@ function ship.createShip(ecsWorld, physicsWorld, x, y)
   e.shield.radius = shieldRadius
   shieldFixture:setUserData(e)
 
-  -- Equip generic weapon
+  -- Weapon loadout for hotbar (5 slots)
+  e:give("weapon_loadout", { "pulse_laser", "mining_laser", "vulcan_cannon", "plasma_splitter", nil }, 1)
+
+  -- Equip initial weapon (first in loadout)
   WeaponFactory.create(e, "pulse_laser")
 
   fixture:setUserData(e)

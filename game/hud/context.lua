@@ -43,6 +43,8 @@ function HudContext.build(world, ships)
   }
 
   local player = world and world:getResource("player")
+  ctx.playerEntity = player -- Expose player entity for widgets like hotbar
+
   if player and player:has("player_progress") then
     ctx.playerLevel = player.player_progress.level or ctx.playerLevel
     ctx.playerXp = player.player_progress.xp or ctx.playerXp

@@ -178,9 +178,11 @@ function MinimapTopRight.draw(ctx)
       mx = MathUtil.clamp(mx, mapX + inset, mapX + mapW - inset)
       my = MathUtil.clamp(my, mapY + inset, mapY + mapH - inset)
 
-      love.graphics.setColor(colors.minimapEnemy[1], colors.minimapEnemy[2], colors.minimapEnemy[3], colors.minimapEnemy[4])
+      love.graphics.setColor(colors.minimapEnemy[1], colors.minimapEnemy[2], colors.minimapEnemy[3],
+        colors.minimapEnemy[4])
       love.graphics.circle("fill", mx, my, enemyRadius)
-      love.graphics.setColor(colors.minimapEnemy[1], colors.minimapEnemy[2], colors.minimapEnemy[3], colors.minimapEnemy[4] * 0.35)
+      love.graphics.setColor(colors.minimapEnemy[1], colors.minimapEnemy[2], colors.minimapEnemy[3],
+        colors.minimapEnemy[4] * 0.35)
       love.graphics.circle("line", mx, my, enemyRadius + 1.5)
     end)
   end
@@ -206,17 +208,9 @@ function MinimapTopRight.draw(ctx)
   love.graphics.rectangle("line", mapX, mapY, mapW, mapH, cornerRadius, cornerRadius)
   love.graphics.setLineWidth(1)
 
-  -- Weapon label below minimap
-  local labelY = mapY + mapH + (hudTheme.layout.stackGap or 6)
-  local weaponName = ctx.weaponName or "No Weapon"
-  local text = "Weapon: " .. weaponName
-  love.graphics.setColor(colors.textShadow[1], colors.textShadow[2], colors.textShadow[3], colors.textShadow[4])
-  love.graphics.print(text, mapX + 1, labelY + 1)
-  love.graphics.setColor(colors.text[1], colors.text[2], colors.text[3], colors.text[4])
-  love.graphics.print(text, mapX, labelY)
-
+  -- Update layout stack position
   if ctx.layout then
-    ctx.layout.topRightY = labelY + love.graphics.getFont():getHeight() + hudTheme.layout.stackGap
+    ctx.layout.topRightY = mapY + mapH + hudTheme.layout.stackGap
   end
 
   love.graphics.setColor(1, 1, 1, 1)

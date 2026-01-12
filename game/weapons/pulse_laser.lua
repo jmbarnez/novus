@@ -10,5 +10,23 @@ return {
     projectileSize = 1.2,
     coneHalfAngle = math.rad(2),
     miningEfficiency = 0.3,
-    description = "Slow-firing high-speed pulse bolt."
+    description = "Slow-firing high-speed pulse bolt.",
+    icon = {
+        kind = "poly",
+        points = {
+            0.0, -0.55,
+            0.35, 0.0,
+            0.0, 0.55,
+            -0.35, 0.0,
+        },
+        shadow = { dx = 0.06, dy = 0.06, a = 0.4 },
+        fillA = 0.95,
+        outline = { a = 0.8, width = 1 },
+        highlight = {
+            kind = "polyline",
+            points = { -0.1, -0.2, 0.1, 0.0, -0.1, 0.2 },
+            a = 0.3,
+            width = 1,
+        },
+    },
 }

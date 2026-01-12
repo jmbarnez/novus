@@ -10,5 +10,21 @@ return {
     projectileSize = 1.0,
     coneHalfAngle = math.rad(5),
     miningEfficiency = 0.5,
-    description = "High rate of fire kinetic weapon."
+    description = "High rate of fire kinetic weapon.",
+    icon = {
+        kind = "poly",
+        points = {
+            0.0, -0.6,
+            0.15, -0.15,
+            0.6, 0.0,
+            0.15, 0.15,
+            0.0, 0.6,
+            -0.15, 0.15,
+            -0.6, 0.0,
+            -0.15, -0.15,
+        },
+        shadow = { dx = 0.06, dy = 0.06, a = 0.4 },
+        fillA = 0.95,
+        outline = { a = 0.8, width = 1 },
+    },
 }

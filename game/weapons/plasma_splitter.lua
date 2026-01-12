@@ -18,5 +18,23 @@ return {
     scatterCount = { 6, 10 },               -- Random between 6 and 10 projectiles
 
     miningEfficiency = 1.2,
-    description = "Fires an orb that explodes into plasma fragments at the target location."
+    description = "Fires an orb that explodes into plasma fragments at the target location.",
+    icon = {
+        kind = "poly",
+        points = {
+            0.0, -0.55,
+            0.2, -0.2,
+            0.55, -0.18,
+            0.28, 0.1,
+            0.35, 0.5,
+            0.0, 0.28,
+            -0.35, 0.5,
+            -0.28, 0.1,
+            -0.55, -0.18,
+            -0.2, -0.2,
+        },
+        shadow = { dx = 0.06, dy = 0.06, a = 0.4 },
+        fillA = 0.95,
+        outline = { a = 0.8, width = 1 },
+    },
 }

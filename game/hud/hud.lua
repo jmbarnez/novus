@@ -208,6 +208,7 @@ function Hud.default()
     require("game.hud.widgets.skill_window"),
     require("game.hud.widgets.fullscreen_map"),
     require("game.hud.widgets.asteroid_tooltip"),
+    require("game.hud.widgets.hotbar_bottom_center"),
     require("game.hud.widgets.cursor_reticle"),
   })
 end
